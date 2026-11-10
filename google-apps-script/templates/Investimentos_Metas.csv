@@ -1,0 +1,5 @@
+id_meta,nome,tipo,valor_alvo,total_aportado,saldo_bruto_atual
+meta_casa,Casa,PATRIMONIO,80000.00,42000.00,44150.00
+meta_estudos,Estudos (Fundo Futuro),OBJETIVO_CONSUMO,15000.00,4200.00,4380.00
+meta_viagem,Viagem,OBJETIVO_CONSUMO,10000.00,6500.00,6790.00
+meta_reserva,Reserva & Patrimônio,PATRIMONIO,30000.00,18000.00,18500.00

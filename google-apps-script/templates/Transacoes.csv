@@ -1,0 +1,11 @@
+id,data_competencia,data_caixa,tipo_fluxo,categoria,descricao,valor,conta,pago_por,escopo,parcela_atual,total_parcelas,id_plano_parcelas
+tx_1730462400001_1,2026-11-01,2026-11-01,RENDA,Salário / Renda,Salário Mensal Giovanni,5000.00,Itaú Conjunta,Giovanni,CONJUNTO,1,1,
+tx_1730462400002_1,2026-11-01,2026-11-01,RENDA,Salário / Renda,Salário Mensal Maria Luiza,3000.00,Itaú Conjunta,Maria Luiza,CONJUNTO,1,1,
+tx_1730808000003_1,2026-11-05,2026-11-05,CUSTO,Habitação & Fixos,Aluguel + Condomínio,-2200.00,Itaú Conjunta,Giovanni,CONJUNTO,1,1,
+tx_1731067200004_1,2026-11-08,2026-11-22,CUSTO,Habitação & Fixos,Supermercado Extra,-400.00,Nubank,Giovanni,CONJUNTO,1,1,
+tx_1731240000005_1,2026-11-10,2026-11-22,CUSTO,Carro,Revisão Mecânica (1/3),-200.00,Nubank,Giovanni,CONJUNTO,1,3,plan_1731240000005
+tx_1731240000005_2,2026-11-10,2026-12-22,CUSTO,Carro,Revisão Mecânica (2/3),-200.00,Nubank,Giovanni,CONJUNTO,2,3,plan_1731240000005
+tx_1731240000005_3,2026-11-10,2027-01-22,CUSTO,Carro,Revisão Mecânica (3/3),-200.00,Nubank,Giovanni,CONJUNTO,3,3,plan_1731240000005
+tx_1731326400006_1,2026-11-11,2026-11-27,CUSTO,Cota Individual,Vestido Zara,-120.00,Nubank,Maria Luiza,INDIVIDUAL_MARIA_LUIZA,1,1,
+tx_1731412800007_1,2026-11-12,2026-11-12,INVESTIMENTO,Casa,Aporte Mensal Fundo Casa,1000.00,Itaú Conjunta,Giovanni,CONJUNTO,1,1,
+tx_1731499200008_1,2026-11-13,2026-11-13,PROVISAO_ANUAL,Fundo Anual (Carro/Impostos),Cota 1/12 IPVA e Seguro,-400.00,Itaú Conjunta,Giovanni,CONJUNTO,1,1,
