@@ -1,0 +1,356 @@
+### Fase 1: Estruturação das Abas do Google Sheets
+
+Crie uma nova planilha no Google Sheets (ex: `Financas_Casal_DB`) com **4 abas** estruturadas exatamente com as colunas abaixo (na Linha 1 de cada aba):
+
+#### 1. Aba `Transacoes`
+
+| Coluna | Nome do Cabeçalho | Descrição / Exemplo |
+| --- | --- | --- |
+| **A** | `id` | Identificador único (gerado via script ou timestamp) |
+| **B** | `data_competencia` | `AAAA-MM-DD` (Mês/dia da compra real) |
+| **C** | `data_caixa` | `AAAA-MM-DD` (Dia do débito na conta ou vencimento da fatura) |
+| **D** | `tipo_fluxo` | `CUSTO`, `INVESTIMENTO`, `RENDA` ou `AJUSTE` |
+| **E** | `categoria` | *Lazer, Carro, Estudos, Saúde, Habitação, Casa, Viagem, Reserva* |
+| **F** | `descricao` | Ex: *Gasolina Posto Shell* |
+| **G** | `valor` | Numérico decimal com sinal (negativo para saídas, positivo para entradas) |
+| **H** | `conta` | Ex: *Nubank, Itaú Conjunta, Dinheiro* |
+| **I** | `pago_por` | *Giovanni* ou *Esposa* |
+| **J** | `escopo` | *CONJUNTO*, *INDIVIDUAL_GIOVANNI* ou *INDIVIDUAL_ESPOSA* |
+| **K** | `parcela_atual` | Número (ex: `1`) |
+| **L** | `total_parcelas` | Número (ex: `1` para à vista, `6` para 6x) |
+| **M** | `id_plano_parcelas` | Identificador comum para amarrar todas as parcelas de uma compra |
+
+#### 2. Aba `Investimentos_Metas`
+
+| Coluna | Nome do Cabeçalho | Exemplo de Linha |
+| --- | --- | --- |
+| **A** | `id_meta` | `meta_casa` |
+| **B** | `nome` | *Casa Própria* |
+| **C** | `tipo` | `PATRIMONIO` ou `OBJETIVO_CONSUMO` |
+| **D** | `valor_alvo` | `80000.00` |
+| **E** | `total_aportado` | Fórmula `=SOMASES(Transacoes!G:G; Transacoes!E:E; B2)` |
+| **F** | `saldo_bruto_atual` | Valor com rendimento atualizado |
+
+#### 3. Aba `Provisoes_Anuais` (Sinking Funds)
+
+| Coluna | Cabeçalhos: `item`, `categoria_pai`, `valor_anual_estimado`, `mes_vencimento`, `saldo_acumulado` |
+| --- | --- |
+| Exemplo | `IPVA e Seguro` | `Carro` | `4800.00` | `01` | `1600.00` |
+
+#### 4. Aba `Config_Casal`
+
+| Coluna | Cabeçalhos: `usuario`, `cota_mensal_livre`, `dia_fechamento_cartao`, `dia_vencimento_cartao` |
+| --- | --- |
+| Linha 2 | `Giovanni` | `400.00` | `15` | `22` |
+| Linha 3 | `Esposa` | `400.00` | `20` | `27` |
+
+---
+
+### Fase 2: O Motor Google Apps Script (API REST + Fila do Tasks)
+
+Abra a planilha, clique em **Extensões > Apps Script**, renomeie o projeto para `API_Financas` e substitua todo o código pelo script abaixo.
+
+Ele implementa:
+
+1. `doGet()`: Devolve todas as abas em formato JSON para o Web App na Vercel.
+2. `doPost()`: Recebe novos lançamentos (inclusive calculando e desdobrando parcelas futuras).
+3. `syncTasksToSheets()`: Lê a lista do Google Tasks alimentada pelo App do Gemini e converte em linhas na planilha.
+
+```javascript
+const SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
+
+// 1. ENDPOINT GET: Consumido pela Vercel para montar os Gráficos
+function doGet(e) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  
+  const transacoes = getSheetData(ss.getSheetByName("Transacoes"));
+  const investimentos = getSheetData(ss.getSheetByName("Investimentos_Metas"));
+  const provisoes = getSheetData(ss.getSheetByName("Provisoes_Anuais"));
+  const config = getSheetData(ss.getSheetByName("Config_Casal"));
+
+  const response = {
+    transacoes: transacoes,
+    investimentos: investimentos,
+    provisoes: provisoes,
+    config: config,
+    timestamp: new Date().toISOString()
+  };
+
+  return ContentService.createTextOutput(JSON.stringify(response))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// 2. ENDPOINT POST: Recebe transações do Web App / Celular
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName("Transacoes");
+    
+    const parcelas = parseInt(data.total_parcelas) || 1;
+    const valorParcela = parseFloat(data.valor) / parcelas;
+    const planoId = parcelas > 1 ? "plan_" + new Date().getTime() : "";
+
+    for (let i = 1; i <= parcelas; i++) {
+      let dataComp = new Date(data.data_competencia || new Date());
+      let dataCaixa = new Date(data.data_caixa || dataComp);
+      
+      // Se parcelado, incrementa o mês das parcelas seguintes
+      if (i > 1) {
+        dataCaixa.setMonth(dataCaixa.getMonth() + (i - 1));
+      }
+
+      const row = [
+        "tx_" + new Date().getTime() + "_" + i,
+        Utilities.formatDate(dataComp, "GMT-3", "yyyy-MM-dd"),
+        Utilities.formatDate(dataCaixa, "GMT-3", "yyyy-MM-dd"),
+        data.tipo_fluxo, // 'CUSTO' ou 'INVESTIMENTO'
+        data.categoria,  // 'Lazer', 'Carro', 'Casa', etc.
+        data.descricao + (parcelas > 1 ? ` (${i}/${parcelas})` : ""),
+        valorParcela,
+        data.conta,
+        data.pago_por,
+        data.escopo,     // 'CONJUNTO' ou 'INDIVIDUAL'
+        i,
+        parcelas,
+        planoId
+      ];
+      sheet.appendRow(row);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({ status: "SUCCESS", count: parcelas }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "ERROR", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// 3. SINCRONIZADOR GOOGLE TASKS -> SHEETS (Ponte do App do Gemini)
+function syncTasksToSheets() {
+  const taskLists = Tasks.Tasklists.list().items;
+  let targetList = taskLists.find(l => l.title === "Finanças");
+  
+  if (!targetList) return;
+
+  const tasks = Tasks.Tasks.list(targetList.id).items;
+  if (!tasks || tasks.length === 0) return;
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName("Transacoes");
+
+  tasks.forEach(task => {
+    // Formato esperado do texto: DATA;TIPO;CATEGORIA;VALOR;CONTA;PARCELAS;PAGO_POR;ESCOPO;DESCRICAO
+    if (task.title && task.title.includes(";")) {
+      const parts = task.title.split(";").map(s => s.trim());
+      if (parts.length >= 9) {
+        const payload = {
+          data_competencia: parts[0],
+          tipo_fluxo: parts[1],
+          categoria: parts[2],
+          valor: parseFloat(parts[3]),
+          conta: parts[4],
+          total_parcelas: parseInt(parts[5]) || 1,
+          pago_por: parts[6],
+          escopo: parts[7],
+          descricao: parts[8]
+        };
+        // Reutiliza a lógica de inserção com parcelas
+        doPost({ postData: { contents: JSON.stringify(payload) } });
+        // Remove a tarefa processada
+        Tasks.Tasks.remove(targetList.id, task.id);
+      }
+    }
+  });
+}
+
+// Função auxiliar de leitura tabular
+function getSheetData(sheet) {
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return [];
+  const headers = values[0];
+  return values.slice(1).map(row => {
+    let obj = {};
+    headers.forEach((h, i) => obj[h] = row[i]);
+    return obj;
+  });
+}
+
+```
+
+#### Ativação dos Serviços e Gatilhos:
+
+1. No Apps Script, vá em **Serviços (+)** na barra esquerda, adicione a **Tasks API**.
+2. Vá no ícone de **Relógio (Acionadores/Triggers)** > **Adicionar Acionador**:
+* Função: `syncTasksToSheets`
+* Origem do evento: **Baseado no tempo**
+* Tipo: **Temporizador por minutos** (a cada 1 minuto ou 5 minutos).
+
+
+3. Clique em **Implantar > Nova Implantação**:
+* Tipo: **App da Web**
+* Executar como: **Eu**
+* Quem pode acessar: **Qualquer pessoa** *(necessário para a Vercel e interceptadores acessarem via POST/GET)*.
+* Guarde a **URL do App da Web** gerada (ex: `[https://script.google.com/macros/s/AKfycb.../exec](https://script.google.com/macros/s/AKfycb.../exec)`).
+
+
+
+---
+
+### Fase 3: Configuração do Gem no Aplicativo do Gemini
+
+No celular ou computador, abra o Gemini, clique no menu lateral em **Gems > Novo Gem** e configure:
+
+* **Nome:** `Finanças Casal`
+* **Descrição:** `Parser de gastos e aportes para o Google Sheets`
+* **Instruções (System Prompt):**
+```text
+Você é o assistente financeiro de registro de gastos do Giovanni e sua esposa.
+Sua única função é extrair transações financeiras ditas em linguagem natural e convertê-las em comandos estruturados para a extensão @Google Tasks.
+
+Categorias permitidas de Custo: Lazer, Carro, Estudos, Saúde, Habitação.
+Categorias permitidas de Investimento: Casa, Estudos, Viagem, Reserva.
+
+Sempre que o usuário relatar um gasto, compra, transferência ou aporte:
+1. Identifique os dados:
+   - Data: Use a data de hoje (AAAA-MM-DD) a menos que informado diferente.
+   - Tipo: CUSTO (despesas normais) ou INVESTIMENTO (aportes em metas).
+   - Categoria: Escolha uma das categorias oficiais acima.
+   - Valor: Negativo para saídas (ex: -150.00) ou positivo para aportes/entradas.
+   - Conta: Nome do banco/cartão citado (ex: Nubank, Itaú, Dinheiro). Se omitido, use "Nubank".
+   - Parcelas: Número inteiro (ex: 1 para à vista, 6 para 6x).
+   - Pago Por: Identifique se quem falou foi "Giovanni" ou "Esposa". Se não der para inferir, use "Giovanni".
+   - Escopo: CONJUNTO (padrão) ou INDIVIDUAL.
+   - Descrição: Breve resumo do que foi comprado.
+
+2. Execute a ação:
+   Adicione uma tarefa na lista "Finanças" do @Google Tasks com o título estritamente no formato:
+   DATA;TIPO;CATEGORIA;VALOR;CONTA;PARCELAS;PAGO_POR;ESCOPO;DESCRICAO
+
+3. Responda no chat de forma ultra enxuta:
+   "✅ Lançado: [Descrição] | R$ [Valor] em [Categoria] ([Conta])"
+
+```
+
+
+* Compartilhe o link do Gem com a sua esposa. Crie a lista chamada `Finanças` no Google Tasks da sua conta Google.
+
+---
+
+### Fase 4: O Web App na Vercel (Next.js + Dashboard)
+
+O Web App será responsável apenas por **consumir o endpoint `doGet()` do Apps Script**, agregar os dados e renderizar os componentes na tela.
+
+#### 1. Setup Inicial do Projeto
+
+```bash
+npx create-next-app@latest financas-casal --typescript --tailwind --app
+cd financas-casal
+npm install recharts lucide-react clsx tailwind-merge
+
+```
+
+#### 2. Configuração de Variável de Ambiente (`.env.local` e Vercel)
+
+```env
+NEXT_PUBLIC_SHEETS_API_URL="https://script.google.com/macros/s/AKfycb.../exec"
+
+```
+
+#### 3. Motor de Ingestão via Regex no Front-end (`components/QuickEntry.tsx`)
+
+Este componente atende ao formato `Cmd+K` no computador ou input fixo no celular:
+
+```tsx
+"use client";
+import React, { useState } from "react";
+
+export function QuickEntry({ onRefresh }: { onRefresh: () => void }) {
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Parser Regex: "150 mercado itau 2x" ou "220 gasolina #carro"
+  const parseEntry = (input: string) => {
+    const valueMatch = input.match(/(\d+([.,]\d{1,2})?)/);
+    const installmentMatch = input.match(/(\d+)x/i);
+    const categoryMatch = input.match(/#(lazer|carro|estudos|saude|habitacao|casa|viagem|reserva)/i);
+    const accountMatch = input.match(/@(nubank|itau|dinheiro)/i);
+
+    const valor = valueMatch ? parseFloat(valueMatch[1].replace(",", ".")) : 0;
+    const parcelas = installmentMatch ? parseInt(installmentMatch[1]) : 1;
+    
+    // Fallback de categoria por palavras comuns
+    let categoria = categoryMatch ? categoryMatch[1] : "Lazer";
+    const lower = input.toLowerCase();
+    if (lower.includes("gasolina") || lower.includes("posto") || lower.includes("uber")) categoria = "Carro";
+    if (lower.includes("farmacia") || lower.includes("medico")) categoria = "Saúde";
+    if (lower.includes("mercado") || lower.includes("aluguel")) categoria = "Habitação";
+
+    const isInvestment = ["casa", "viagem", "reserva"].includes(categoria.toLowerCase());
+
+    return {
+      data_competencia: new Date().toISOString().split("T")[0],
+      tipo_fluxo: isInvestment ? "INVESTIMENTO" : "CUSTO",
+      categoria: categoria.charAt(0).toUpperCase() + categoria.slice(1),
+      descricao: input.replace(/#\w+|@\w+|\d+x|\d+([.,]\d{1,2})?/gi, "").trim() || "Gasto Rápido",
+      valor: isInvestment ? valor : -valor,
+      conta: accountMatch ? accountMatch[1] : "Nubank",
+      pago_por: "Giovanni",
+      escopo: lower.includes("individual") ? "INDIVIDUAL_GIOVANNI" : "CONJUNTO",
+      total_parcelas: parcelas
+    };
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!text) return;
+    setLoading(true);
+
+    const payload = parseEntry(text);
+
+    await fetch(process.env.NEXT_PUBLIC_SHEETS_API_URL!, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+
+    setText("");
+    setLoading(false);
+    onRefresh();
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="w-full max-w-xl mx-auto my-4 p-2 bg-neutral-900 rounded-xl border border-neutral-800">
+      <input
+        type="text"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Lançar rápido... Ex: 120 gasolina itau 2x (ou use #categoria @conta)"
+        className="w-full bg-transparent text-white px-3 py-2 outline-none placeholder-neutral-500 text-sm"
+        disabled={loading}
+      />
+    </form>
+  );
+}
+
+```
+
+#### 4. As Telas e Visualizações do Dashboard (`app/page.tsx`)
+
+O dashboard processa o JSON da planilha e monta os **três componentes centrais** que você planejou:
+
+1. **Alocação de Renda (Planilha Dinâmica + Pizza Macro):**
+* Soma as linhas de `CUSTO` (por categoria: *Lazer, Carro, Estudos, Saúde, Habitação*) vs. linhas de `INVESTIMENTO` no mês vigente.
+* Renderiza a tabela de apuração real e o Gráfico de Pizza Macro (`PieChart` do Recharts) sem amarras de orçamento.
+
+
+2. **Gráfico de Pizza de Investimentos:**
+* Agrupa os aportes acumulados nas categorias *Casa*, *Estudos* e *Viagem*.
+* Exibe a participação de cada objetivo no patrimônio líquido acumulado.
+
+
+3. **Módulo de Faturas Futuras e Acerto de Contas:**
+* Filtra transações onde `data_caixa > HOJE` agrupadas por mês para projetar as faturas de cartão.
+* Calcula a diferença entre gastos `INDIVIDUAL` pagos na conta conjunta vs. gastos `CONJUNTO` pagos na conta pessoal para mostrar a reconciliação do casal em um card simples.
+
+
+

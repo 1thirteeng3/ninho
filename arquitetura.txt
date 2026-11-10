@@ -1,0 +1,387 @@
+# Arquitetura Zero-API para Observabilidade Financeira e Governança Conjunta de Casais
+
+**Especificação Técnica, Modelo Econômico e Desenho de Mecanismos de um Sistema Híbrido Serverless Baseado em Ecossistema Google e Next.js**
+
+---
+
+## 1. Sumário Executivo (Executive Summary)
+
+Sistemas de gestão financeira pessoal (PFM — *Personal Finance Management*) falham sistematicamente no longo prazo devido a três gargalos estruturais: **fricção de entrada de dados**, **rigidez prescritiva de orçamento** e **assimetria de governança quando operados por casais**. Soluções comerciais de prateleira impõem tetos orçamentários artificiais que geram fadiga cognitiva quando a realidade financeira do mês se altera, além de carecerem de mecanismos nativos para reconciliar um modelo de caixa unificado com autonomia individual. Por outro lado, arquiteturas customizadas tradicionais exigem bancos de dados relacionais dedicados e consumo de APIs pagas de processamento de linguagem natural (LLMs) ou Open Finance, introduzindo custos fixos e complexidade de manutenção desproporcionais para o escopo doméstico.
+
+Propomos uma arquitetura **Zero-API Paga e Descritiva por Design**, projetada especificamente para casais que operam sob o regime de **Caixa Único com Cota de Autonomia Individual**. O sistema dissocia a captura de dados da visualização analítica por meio de uma topologia em quatro camadas gratuitas e perenes:
+
+1. **Camada de Ingestão Multimodal de Baixa Fricção:** Utilização do aplicativo oficial do Google Gemini (via *Gems* customizados integrados à extensão nativa `@Google Tasks`), combinada a um parser léxico determinístico (Regex) e interceptação de notificações mobile via Webhooks.
+2. **Camada de Persistência e Regras de Negócio (Backend-as-a-Spreadsheet):** Uso do Google Sheets como livro-razão auditável e imutável, acoplado ao Google Apps Script (GAS) atuando como motor transacional de desdobramento de parcelas, consolidador de fila assíncrona e endpoint REST (`doGet`/`doPost`).
+3. **Camada de Observabilidade e Governança Financeira:** Separação estrita entre **Custos Operacionais** (*Lazer, Carro, Estudos, Saúde, Habitação*), **Provisões de Despesas Anuais / Sinking Funds** (*IPVA, Seguro, Impostos*) e **Investimentos Orientados a Objetivos** (*Casa, Estudos, Viagem, Reserva*), acrescida de um algoritmo automático de encontro de contas (*Couple Settlement Engine*).
+4. **Camada de Apresentação Serverless (PWA):** Aplicação web reativa em Next.js hospedada na Vercel, com renderização dinâmica de alocação de renda real (*post-mortem*), composição de portfólio e projeção de passivos de cartão de crédito.
+
+O resultado estratégico é um ecossistema de **custo operacional zero (R$ 0,00/mês)**, tempo médio de registro inferior a 4 segundos por transação e aderência total à contabilidade de dupla entrada simplificada para finanças conjugais.
+
+---
+
+## 2. Contexto e Formulação do Problema (O Diagnóstico)
+
+A engenharia de sistemas financeiros domésticos enfrenta um paradoxo fundamental: quanto maior a granularidade analítica desejada nos relatórios de saída, maior o custo transacional imposto ao usuário no momento da entrada do dado. Quando o sistema é compartilhado por duas pessoas, esse atrito cresce exponencialmente. A análise das falhas nos paradigmas atuais revela cinco patologias técnicas e conceituais que inviabilizam o uso contínuo após os primeiros 60 a 90 dias.
+
+### 2.1. O Conflito entre Sistemas Prescritivos e Sistemas Descritivos
+
+A maioria dos softwares financeiros opera sob um paradigma **prescritivo a priori**: o usuário é forçado a definir limites percentuais rígidos (ex.: 50% para custos essenciais, 30% para estilo de vida, 20% para investimentos) como condição de funcionamento do sistema. Na prática empírica de uma família com renda líquida na faixa de R$ 8.000,00 mensais, a variância de gastos é estruturalmente não linear. Uma manutenção corretiva no veículo ou uma despesa médica atípica pode elevar os custos essenciais para 70% ou 80% da renda em determinado mês.
+
+Quando um sistema é desenhado para "ditar como o usuário deve gerir seu dinheiro", qualquer desvio da meta gera alertas vermelhos punitivos, saldos negativos artificiais entre categorias e necessidade de remanejamento manual de orçamentos. O sistema deixa de ser um instrumento de medição (termômetro) e tenta atuar como um controlador coercitivo (termostato), levando ao abandono da ferramenta. O requisito primário deve ser a **observabilidade descritiva**: registrar o fato econômico com fidelidade absoluta e calcular a matriz de alocação como consequência matemática dos lançamentos reais.
+
+### 2.2. A Distorção Contábil entre Investimento Patrimonial e Consumo Diferido
+
+No planejamento inicial de finanças pessoais, é comum agrupar sob o rótulo de "Investimentos" destinos de natureza contábil antagônica, tais como *Casa*, *Estudos* e *Viagem*. Do ponto de vista econômico:
+
+* **Formação de Patrimônio e Reserva:** Recursos alocados em ativos geradores de renda ou proteção de liquidez sem previsão de exaustão por consumo.
+* **Provisão de Consumo Diferido (Passivo Programado):** Recursos alocados temporariamente em instrumentos financeiros (ex.: CDBs de liquidez diária) cujo propósito exclusivo é a destruição futura do capital na aquisição de um serviço ou bem de consumo (*Viagem de férias*, *Curso/Especialização*).
+
+Quando o sistema não distingue **Tipo de Fluxo/Ativo** de **Finalidade/Meta**, o casal sofre de ilusão patrimonial: o saldo total investido cresce, mascarando o fato de que uma fração substancial daquele montante já está comprometida com desembolsos de curto e médio prazo.
+
+### 2.3. A Invisibilidade da Depreciação e dos Passivos Sazonais (Sinking Funds)
+
+Em orçamentos de até R$ 8.000,00 mensais que incluem a manutenção de um automóvel, a ausência de provisionamento mensal para despesas anuais concentradas (IPVA, licenciamento, seguro automotivo, revisões mecânicas e matrículas de estudos) cria um ciclo de falsa folga financeira entre março e novembro, seguido de insolvência de caixa entre dezembro e fevereiro. Sem uma entidade contábil dedicada a diluir custos anuais em cotas mensais de 1/12 avos, o gráfico de alocação mensal mente durante 10 meses do ano e colapsa nos outros 2.
+
+### 2.4. O Atrito de Interface e o Problema do "Split-Brain" em Arquiteturas com IA
+
+Tentativas de modernizar o lançamento de gastos via Inteligência Artificial frequentemente esbarram em dois extremos:
+
+1. **Dependência de APIs Externas Pagas:** Conectar um Web App próprio às APIs comerciais de LLMs (OpenAI API, Google Vertex/Gemini API) ou provedores de Open Finance (Pluggy, Belvo) exige gestão de chaves secretas, tratamento de limites de cota (*rate limits*) e faturamento recorrente.
+2. **A Limitação Nativa de Escrita do App Consumidor do Gemini no Google Sheets:** Embora o aplicativo oficial do Gemini possua integração nativa com o Google Workspace, o conector `@Google Drive / @Google Docs` opera em modo somente leitura para planilhas existentes, sendo incapaz de executar uma instrução transacional de `APPEND_ROW` diretamente em uma tabela de banco de dados no Sheets. Tentar usar o Google Sheets e um banco relacional (como PostgreSQL) simultaneamente sem uma definição estrita de fonte única da verdade (*Single Source of Truth*) resulta no fenômeno de *Split-Brain*: divergência de estado entre o que foi editado na planilha e o que consta no banco da aplicação.
+
+### 2.5. A Complexidade do Caixa Único com Autonomia Individual
+
+No arranjo financeiro conjugal em que 100% das receitas convergem para um fundo comum, mas cada cônjuge detém uma **Cota Mensal Individual Livre** (isenta de prestação de contas), ocorre um problema operacional cotidiano: o cruzamento de meios de pagamento. Um cônjuge frequentemente utiliza o cartão de crédito conjunto para adquirir um item estritamente pessoal, ou utiliza o saldo da sua conta pessoal para pagar uma despesa conjunta de emergência. Sem um motor algorítmico de compensação (*Settlement Engine*), o controle da cota individual exige cálculos manuais no fechamento do mês, gerando ruído relacional e imprecisão contábil.
+
+---
+
+## 3. Visão Geral da Solução e Princípios de Design
+
+A arquitetura proposta resolve integralmente os cinco problemas diagnosticados por meio de um sistema distribuído leve, cujo banco de dados central reside no **Google Sheets**, cujo motor de regras de negócio e API opera no **Google Apps Script**, cuja entrada conversacional utiliza o **App Oficial do Gemini via ponte assíncrona no Google Tasks**, e cuja interface analítica roda em **Next.js na Vercel**.
+
+### 3.1. Axiomas de Projeto (Design Principles)
+
+1. **Neutralidade Descritiva (Observability First):** O sistema nunca bloqueia, restringe ou invalida um lançamento por violação de metas percentuais. A distribuição da renda entre *Custos* e *Investimentos* é uma variável dependente calculada em tempo real sobre os fatos registrados. Diretrizes de orçamento (como o referencial 50/20/20/10) existem estritamente como camadas visuais comparativas opcionais.
+2. **Soberania de Dados e Fonte Única da Verdade (Single Source of Truth):** O arquivo do Google Sheets é o único repositório persistente de estado do sistema. O Web App na Vercel é totalmente *stateless* (sem banco de dados próprio), atuando como uma camada de visualização reativa e terminal de entrada rápida que lê e escreve diretamente na planilha.
+3. **Zero-API Externa e Custo Marginal Zero:** Nenhuma chave de API tarifada por token ou requisição é utilizada. O processamento de linguagem natural é terceirizado gratuitamente para a interface de usuário do aplicativo oficial do Gemini (via *Gems*), utilizando o ecossistema nativo do Google Workspace (`@Google Tasks` $\rightarrow$ `Apps Script` $\rightarrow$ `Google Sheets`) como barramento de eventos interno.
+4. **Fricção Assimptótica a Zero na Ingestão:** O usuário nunca deve preencher mais de um campo de texto para registrar uma transação. Seja falando com o Gem no celular, digitando uma string curta via Regex no computador (`Cmd+K`) ou interceptando a notificação push do aplicativo bancário, a estruturação em colunas é responsabilidade exclusiva do software.
+5. **Bimodalidade Temporal (Competência vs. Caixa):** Toda transação possui dupla ancoragem no tempo: o momento do fato gerador (`data_competencia`, para análise de padrão de consumo) e o momento do desembolso financeiro (`data_caixa`, para projeção de faturas de cartão de crédito e liquidez).
+
+### 3.2. Topologia em Alto Nível do Sistema
+
+```
++-----------------------------------------------------------------------------------+
+|                        CAMADA 1: CANAIS DE INGESTÃO (INPUT)                       |
++---------------------------+---------------------------+---------------------------+
+|   Canal A: Voz / Chat     |   Canal B: Input Rápido   |  Canal C: Passivo Mobile  |
+|   App Oficial do Gemini   |   Web App (PC / Mobile)   |  Notificação do App Banco |
+|     (Gem Customizado)     |  Parser Regex Determiníst.|  (MacroDroid / Shortcuts) |
++-------------+-------------+-------------+-------------+-------------+-------------+
+              |                           |                           |
+              | Extensão Nativa           | HTTP POST (JSON)          | HTTP POST (JSON)
+              v                           |                           |
++---------------------------+             |                           |
+|   @Google Tasks (Fila)    |             |                           |
+|  Lista: "Finanças" (CSV)  |             |                           |
++-------------+-------------+             |                           |
+              |                           |                           |
+              | Polling (Trigger 1 min)   |                           |
+              v                           v                           v
++-----------------------------------------------------------------------------------+
+|           CAMADA 2: MOTOR TRANSACIONAL & API SERVERLESS (GOOGLE APPS SCRIPT)      |
+|  - syncTasksToSheets(): Consome fila do Tasks, faz parse e limpa tarefas          |
+|  - doPost(e): Valida payload, desdobra parcelas (1..N) e projeta datas de caixa   |
+|  - doGet(e): Serializa as 4 abas da planilha em payload JSON unificado            |
++-----------------------------------------+-----------------------------------------+
+                                          | Leitura / Escrita Nativa (SpreadsheetApp)
+                                          v
++-----------------------------------------------------------------------------------+
+|                CAMADA 3: PERSISTÊNCIA E LIVRO-RAZÃO (GOOGLE SHEETS)               |
+|  [Aba 1: Transacoes]  [Aba 2: Investimentos_Metas]  [Aba 3: Provisoes_Anuais]     |
+|  [Aba 4: Config_Casal] -> Auditável, editável em planilha e com backup em nuvem   |
++-----------------------------------------+-----------------------------------------+
+                                          | HTTP GET (JSON) via Fetch API
+                                          v
++-----------------------------------------------------------------------------------+
+|             CAMADA 4: APRESENTAÇÃO E ANALYTICS (NEXT.JS PWA NA VERCEL)            |
+|  - Motor de Agregação Real-Time (Alocação Custos vs. Investimentos sem travas)    |
+|  - Gráficos Duplos de Pizza/Donut (Alocação Geral da Renda + Carteira de Metas)   |
+|  - Motor de Reconciliação Conjugal (Cálculo da Cota Individual e Desvios)         |
+|  - Radar de Passivos Futuros (Projeção de Faturas de Cartão e Sinking Funds)      |
++-----------------------------------------------------------------------------------+
+
+```
+
+---
+
+## 4. Especificação Técnica e Arquitetural (O Núcleo da Proposta)
+
+A seguir, detalhamos exaustivamente cada subsistema, suas estruturas de dados, formulações matemáticas e algoritmos de operação.
+
+### 4.1. Taxonomia Econômica e Modelo Contábil do Casal
+
+Para eliminar as ambiguidades conceituais do modelo embrionário original (como a duplicidade da categoria *Estudos* e a ausência de custos básicos de habitação), o plano de contas do sistema é estruturado em uma matriz bidimensional composta por **Tipo de Fluxo (`tipo_fluxo`)** e **Categoria (`categoria`)**.
+
+#### 4.1.1. Dimensão 1: Tipos de Fluxo Macro
+
+1. **`RENDA`:** Entradas líquidas de recursos provenientes de salários, pró-labore, rendimentos extras ou restituições de qualquer um dos cônjuges.
+2. **`CUSTO`:** Desembolsos definitivos para manutenção da vida, consumo imediato ou fruição de serviços. Reduzem o patrimônio líquido disponível no mês.
+3. **`PROVISAO_ANUAL`:** Retenções mensais programadas para cobrir passivos obrigatórios de periodicidade anual (Sinking Funds). Embora o dinheiro permaneça guardado até o mês do vencimento, contabilmente já é uma despesa incorrida por competência.
+4. **`INVESTIMENTO`:** Transferências de capital da conta corrente para ativos financeiros vinculados a metas de acumulação de curto, médio ou longo prazo.
+
+#### 4.1.2. Dimensão 2: Categorias Oficiais do Sistema
+
+Abaixo está a resolução formal das categorias solicitadas pelo usuário, expandidas para cobrir 100% da realidade financeira do casal e resolver a colisão semântica de *Estudos*:
+
+| Tipo de Fluxo | Categoria | Escopo Contábil e Regras de Classificação |
+| --- | --- | --- |
+| **`CUSTO`** | **Habitação & Fixos** | Aluguel/financiamento, condomínio, energia elétrica, água, gás, internet, supermercado base e insumos domésticos essenciais. |
+| **`CUSTO`** | **Carro** | Despesas operacionais correntes de mobilidade: combustível, estacionamento, pedágio, lavagem, Uber/transporte complementar e pequenos reparos imediatos. |
+| **`CUSTO`** | **Saúde** | Mensalidade de plano de saúde, medicamentos de uso contínuo ou emergencial, consultas médicas, exames, odontologia, psicoterapia e atividades físicas de saúde. |
+| **`CUSTO`** | **Estudos (Custeio)** | Despesas educacionais recorrentes e de consumo imediato: mensalidades de cursos em andamento, livros, assinaturas de softwares/ferramentas técnicas e papelaria. |
+| **`CUSTO`** | **Lazer** | Gastronomia fora do lar, delivery, entretenimento, streaming, passeios conjuntos de fim de semana, presentes e compras de estilo de vida do casal. |
+| **`CUSTO`** | **Cota Individual** | Despesas estritamente pessoais de cada cônjuge (vestuário pessoal, hobbies individuais, jogos, estética) abatidas da franquia livre mensal de cada membro. |
+| **`PROVISAO_ANUAL`** | **Fundo Anual (Carro/Impostos)** | Provisão mensal de 1/12 avos para IPVA, Seguro Automotivo, Licenciamento, Revisão Preventiva Anual e eventuais impostos/anuidades profissionais. |
+| **`INVESTIMENTO`** | **Casa** | Aportes destinados à formação de capital para aquisição de imóvel próprio, amortização de financiamento imobiliário, entrada ou reformas estruturais. |
+| **`INVESTIMENTO`** | **Estudos (Fundo Futuro)** | Aportes de acumulação para projetos educacionais futuros de alto valor (ex.: pós-graduação, MBA, intercâmbio ou certificações internacionais). |
+| **`INVESTIMENTO`** | **Viagem** | Aportes para o fundo de férias e viagens programadas de médio prazo (capital poupado para posterior conversão em experiência). |
+| **`INVESTIMENTO`** | **Reserva & Patrimônio** | Colchão de liquidez de emergência do casal (meta de 6 meses de custo fixo) e investimentos previdenciários de longo prazo (independência financeira). |
+
+---
+
+### 4.2. Modelo Matemático de Alocação, Governança e Reconciliação
+
+O motor analítico do Web App opera sobre equações determinísticas que garantem que qualquer variação nos gastos seja refletida sem distorções.
+
+#### 4.2.1. Equação de Alocação Descritiva da Renda (Post-Mortem)
+
+Seja $R_m$ a soma de todas as transações com `tipo_fluxo = 'RENDA'` no mês de competência $m$. Seja $C_{k,m}$ o valor absoluto da soma das transações da categoria de custo $k$ no mês $m$, e $I_{j,m}$ a soma dos aportes na categoria de investimento $j$ no mês $m$.
+
+O peso percentual real de cada categoria na Planilha de Alocação de Renda ($\alpha_{k,m}$) e no Gráfico de Pizza Geral é dado por:
+
+$$\alpha_{k,m} = \left( \frac{\vert{}C_{k,m}\vert{}}{R_m} \right) \times 100 \quad \text{e} \quad \beta_{j,m} = \left( \frac{I_{j,m}}{R_m} \right) \times 100$$
+
+O **Saldo de Caixa Não Alocado (ou Déficit Operacional do Mês)** $\Delta_m$ é apurado residualmente:
+
+$$\Delta_m = R_m - \left( \sum_{k} \vert{}C_{k,m}\vert{} + \sum_{p} \vert{}P_{p,m}\vert{} + \sum_{j} I_{j,m} \right)$$
+
+Onde $P_{p,m}$ representa as retenções para `PROVISAO_ANUAL`. Se em determinado mês o casal decidir gastar 70% da renda em *Custos*, o sistema simplesmente renderiza $\sum \alpha_{k,m} = 70\%$, sem emitir erros de validação, adaptando o gráfico de pizza instantaneamente à proporção real executada.
+
+#### 4.2.2. Algoritmo de Reconciliação do Casal (Caixa Único + Cota Individual)
+
+Seja o casal composto pelos membros $u \in \{P_1, P_2\}$ (Giovanni e Esposa). No modelo **100% Unificado com Cota Individual**, todas as receitas entram no Caixa Conjunto Virtual, e cada membro possui uma franquia mensal livre $Q_u$ (ex.: $Q_{P_1} = \text{R\$ } 400,00$ e $Q_{P_2} = \text{R\$ } 400,00$).
+
+Durante o mês $m$, ocorrem duas classes de desvios de meio de pagamento registradas na tabela de transações:
+
+1. $D_{u,m}^{\text{ind\_em\_conj}}$: Soma dos gastos de escopo `INDIVIDUAL` do membro $u$ que foram pagos utilizando uma conta ou cartão de titularidade `CONJUNTA` (ou cartão do outro cônjuge).
+2. $D_{u,m}^{\text{conj\_em\_ind}}$: Soma dos gastos de escopo `CONJUNTO` do casal que foram pagos utilizando recursos já separados da conta/cota estritamente `INDIVIDUAL` do membro $u$.
+
+A **Disponibilidade Líquida Restante da Cota Individual** ($L_{u,m}$) do membro $u$ no mês $m$ é calculada em tempo real por:
+
+$$L_{u,m} = Q_u - D_{u,m}^{\text{ind\_em\_conj}} + D_{u,m}^{\text{conj\_em\_ind}}$$
+
+* **Interpretação Operacional:**
+* Se $L_{u,m} \ge 0$: É o valor exato que o membro $u$ ainda pode gastar consigo mesmo no mês (ou transferir da conta conjunta para sua conta pessoal).
+* Se $L_{u,m} < 0$: O membro $u$ extrapolou sua cota individual utilizando o cartão/conta conjunta. O valor absoluto $\vert{}L_{u,m}\vert{}$ deve ser restituído da conta pessoal dele para a conta conjunta (ou descontado automaticamente da cota $Q_u$ do mês $m+1$).
+
+
+
+#### 4.2.3. Motor de Desdobramento Temporal de Cartão de Crédito (Competência vs. Caixa)
+
+Quando uma compra parcelada de valor total $V$ em $N$ parcelas é realizada na data $t_{\text{compra}}$ utilizando um cartão de crédito com dia de fechamento $d_{\text{fech}}$ e dia de vencimento $d_{\text{venc}}$:
+
+1. O valor unitário de cada parcela é $v = \text{round}(V / N, 2)$, ajustando-se eventual diferença de centavos na parcela $i = 1$.
+2. Determina-se o deslocamento de fatura base ($\delta_0$):
+
+$$\delta_0 = \begin{cases} 0, & \text{se } \text{dia}(t_{\text{compra}}) < d_{\text{fech}} \\ 1, & \text{se } \text{dia}(t_{\text{compra}}) \ge d_{\text{fech}} \end{cases}$$
+
+
+3. Para cada parcela $i \in \{1, 2, \dots, N\}$, o sistema gera um registro independente na aba `Transacoes` com:
+* `data_competencia`: $t_{\text{compra}}$ (permite saber quanto foi contratado de dívida naquele dia) ou o 1º dia do mês de referência da fatura.
+* `data_caixa`: Data formada pelo ano/mês de $(t_{\text{compra}} + (\delta_0 + i - 1) \text{ meses})$ no dia $d_{\text{venc}}$.
+
+
+
+Isso permite que o Web App tenha um seletor no topo: **Visão Caixa (Faturas a pagar no mês)** vs. **Visão Competência (Compras feitas no mês)**.
+
+---
+
+### 4.3. Especificação da Ponte Assíncrona "Zero-API": App do Gemini $\rightarrow$ Google Tasks $\rightarrow$ Sheets
+
+Como documentado no diagnóstico, o aplicativo oficial do Gemini não edita linhas de planilhas existentes diretamente, mas possui **permissão de escrita nativa (`CREATE TASK`)** na extensão `@Google Tasks`. A arquitetura explora essa capacidade transformando o Google Tasks em um **Message Broker (Fila de Mensagens FIFO — First-In, First-Out)** gratuito.
+
+#### 4.3.1. O Protocolo de Serialização Leve (Pipe/Semicolon Delimited Payload)
+
+O Gem customizado no aplicativo do Gemini é instruído via *System Prompt* a traduzir qualquer comando de voz ou texto livre do casal em uma string estritamente formatada de 9 campos separados por ponto e vírgula (`;`), inserindo-a como título de uma tarefa na lista `"Finanças"` do Google Tasks:
+
+```text
+YYYY-MM-DD ; TIPO_FLUXO ; CATEGORIA ; VALOR ; CONTA ; PARCELAS ; PAGO_POR ; ESCOPO ; DESCRICAO
+
+```
+
+* **Exemplo de Entrada por Voz no App do Gemini:**
+*"Passei 600 reais da revisão do carro em 3 vezes no Nubank hoje."*
+* **String Gerada pelo Gem e Salva no `@Google Tasks`:**
+`2026-11-10;CUSTO;Carro;-600.00;Nubank;3;Giovanni;CONJUNTO;Revisão do carro`
+
+#### 4.3.2. O Consumidor da Fila no Google Apps Script (`syncTasksToSheets`)
+
+Dentro da planilha do Google Sheets, um gatilho baseado no tempo (*Time-Driven Trigger*) executa a função `syncTasksToSheets()` a cada 1 minuto:
+
+1. Consulta o serviço interno `Tasks.Tasks.list(tasklistId)` buscando tarefas não concluídas na lista `"Finanças"`.
+2. Valida a integridade léxica da string (presença dos delimitadores `;` e validação numérica do campo `VALOR`).
+3. Invoca internamente a função de persistência `doPost()`, que desdobra as 3 parcelas de `-200.00` nos meses correspondentes na aba `Transacoes`.
+4. Executa `Tasks.Tasks.remove(tasklistId, taskId)`, mantendo a lista do Google Tasks permanentemente limpa e garantindo semântica de entrega *Exactly-Once* (exatamente uma vez).
+
+---
+
+### 4.4. Especificação dos Demais Canais de Baixa Fricção
+
+Além do Gem no aplicativo do Gemini, a arquitetura provê dois canais complementares que convergem para o mesmo endpoint `doPost(e)` do Google Apps Script:
+
+#### 4.4.1. Parser Determinístico via Regex no Front-end (PC `Cmd+K` e Barra Mobile)
+
+No Web App hospedado na Vercel, um componente de entrada rápida permite digitar strings telegráficas sem uso do mouse ou múltiplos cliques. O motor Regex opera no cliente (navegador) com latência de 0 ms:
+
+* **Gramática Suportada:** `<valor> <descrição livre> [#categoria] [@conta] [Nx] [!individual]`
+* **Regras de Extração (Expressões Regulares):**
+* **Valor Monetário:** `/(\d+(?:[.,]\d{1,2})?)/` $\rightarrow$ Captura inteiros ou decimais com vírgula/ponto.
+* **Parcelamento:** `/\b(\d+)x\b/i` $\rightarrow$ Captura multiplicador de parcelas (ex.: `4x` $\rightarrow$ `total_parcelas = 4`).
+* **Tag Explícita de Categoria:** `/#(lazer|carro|estudos|saude|habitacao|casa|viagem|reserva)\b/i`
+* **Tag Explícita de Conta:** `/@(nubank|itau|inter|dinheiro|conjunta)\b/i`
+* **Tag de Escopo:** `/!(ind|individual|pessoal)\b/i` $\rightarrow$ Altera o escopo padrão de `CONJUNTO` para `INDIVIDUAL`.
+* **Dicionário Heurístico de Fallback:** Caso o usuário não digite a hashtag `#categoria` (ex.: digite apenas `"180 gasolina nubank"`), um mapa de palavras-chave local associa termos conhecidos às categorias (`["gasolina", "posto", "ipva", "pneu", "uber"]` $\rightarrow$ `Carro`; `["drogasil", "farmacia", "medico", "exame"]` $\rightarrow$ `Saúde`; `["ifood", "restaurante", "bar", "cinema"]` $\rightarrow$ `Lazer`).
+
+
+
+#### 4.4.2. Interceptação Passiva de Notificações Bancárias no Celular
+
+Para eliminar até mesmo o ato de digitar nas compras presenciais e online no cartão ou Pix:
+
+* **No Android (via MacroDroid / Tasker) ou iOS (via Atalhos / Shortcuts):**
+* **Gatilho (Trigger):** Recebimento de notificação dos pacotes de aplicativos bancários (`com.nu.production`, `com.itau`, etc.) ou gatilho de transação na carteira digital (*Apple Pay / Google Wallet*).
+* **Ação (Action):** Disparo de uma requisição HTTP `POST` para a URL do Google Apps Script (`[https://script.google.com/macros/s/.../exec](https://script.google.com/macros/s/.../exec)`) enviando o corpo da notificação bruta:
+```json
+{
+  "raw_notification": "Compra aprovada no seu cartao final 1234 em SUPERMERCADO EXTRA valor R$ 245,80 em 10/11",
+  "paid_by": "Giovanni",
+  "source": "MOBILE_NOTIFICATION"
+}
+
+```
+
+
+* **Processamento no Apps Script:** Um bloco Regex no próprio `doPost()` extrai o valor após `R$` e o nome do estabelecimento após `em `, aplica o dicionário de palavras-chave e grava a linha direto na planilha.
+
+
+
+---
+
+### 4.5. Arquitetura de Interface e Visualização Analítica (Next.js na Vercel)
+
+A interface do usuário é dividida em quatro módulos visuais que refletem exatamente a estrutura mental solicitada, expandida com os controles operacionais necessários para a rotina do casal:
+
+```
++-----------------------------------------------------------------------------------+
+| [Header] Finanças Casal | Mês: [Novembro 2026 v] | Visão: (•) Caixa ( ) Compet.   |
++-----------------------------------------------------------------------------------+
+| [Quick Entry Bar (Cmd+K / Mobile Input)]                                          |
+| > Digite rápido: "150 jantar pizzaria #lazer @nubank"                      [Lançar]|
++-----------------------------------------------------------------------------------+
+| [KPI 1: Renda do Mês] | [KPI 2: Custos Totais] | [KPI 3: Investido] | [KPI 4: Saldo]|
+|      R$ 8.000,00      |   R$ 5.400,00 (67,5%)  | R$ 1.800,00 (22,5%)|  R$ 800,00    |
++-----------------------+------------------------+--------------------+-------------+
+| MÓDULO 1: ALOCAÇÃO MACRO DE RENDA      | MÓDULO 2: DETALHAMENTO DE INVESTIMENTOS  |
+| [Gráfico de Pizza / Donut Geral]       | [Gráfico de Pizza / Donut de Metas]      |
+|  - Custos: Lazer, Carro, Estudos,      |  - Casa Própria (55% do portfólio)       |
+|    Saúde, Habitação, Cota Indiv.       |  - Viagem (20% do portfólio)             |
+|  - Investimentos (Fatia consolidada)   |  - Estudos Futuros (15% do portfólio)    |
+|  - Provisões Anuais (Fatia Sinking)    |  - Reserva / Patrimônio (10%)            |
++----------------------------------------+------------------------------------------+
+| MÓDULO 3: PLANILHA DINÂMICA DE ALOCAÇÃO (CUSTOS vs. INVESTIMENTOS)                |
+| Grupo / Categoria       | Realizado (R$) | % da Renda | Status / Progresso Meta   |
+| ------------------------+----------------+------------+-------------------------- |
+| ▼ CUSTOS OPERACIONAIS   | R$ 5.400,00    |   67,5%    | Livre (Observacional)     |
+|   • Habitação & Fixos   | R$ 2.600,00    |   32,5%    | ████████████░░░░          |
+|   • Carro               | R$ 1.100,00    |   13,7%    | ███████░░░░░░░░░          |
+|   • Saúde               | R$   650,00    |    8,1%    | ████░░░░░░░░░░░░          |
+|   • Lazer               | R$   650,00    |    8,1%    | ████░░░░░░░░░░░░          |
+|   • Estudos (Custeio)   | R$   400,00    |    5,0%    | ███░░░░░░░░░░░░░          |
+| ▼ INVESTIMENTOS & METAS | R$ 1.800,00    |   22,5%    | Acumulado Total na Meta   |
+|   • Casa                | R$ 1.000,00    |   12,5%    | R$ 42.000 / R$ 80.000     |
+|   • Viagem              | R$   500,00    |    6,2%    | R$  6.500 / R$ 10.000     |
+|   • Estudos (Fundo)     | R$   300,00    |    3,8%    | R$  4.200 / R$ 15.000     |
++-----------------------------------------------------------------------------------+
+| MÓDULO 4: GOVERNANÇA DO CASAL, PROVISÕES ANUAIS E RADAR DE FATURAS                |
+| [Card: Cota Livre Individual]          | [Card: Passivos Futuros & Sinking Funds] |
+| • Giovanni: Restam R$ 280 de R$ 400    | • Fatura Dez/26 já comprometida: R$ 1.420|
+| • Esposa:   Restam R$ 350 de R$ 400    | • Fundo IPVA/Seguro: R$ 3.600 / R$ 4.800 |
+| • Acerto: Nenhum repasse pendente      | • Rentabilidade Bruta Carteira: +R$ 3.120|
++-----------------------------------------------------------------------------------+
+
+```
+
+---
+
+## 5. Análise de Segurança, Resiliência e Gestão de Riscos
+
+Mesmo em um sistema de escopo doméstico/familiar, a exposição de um endpoint do Google Apps Script na web e o compartilhamento de estado exigem salvaguardas arquiteturais específicas.
+
+### 5.1. Autenticação Leve por Token Compartilhado (`SHARED_SECRET`)
+
+Como o Web App do Google Apps Script precisa ser publicado com acesso `"Qualquer pessoa"` para aceitar requisições `POST` diretas da Vercel e do celular sem exigir fluxo OAuth2 complexo a cada chamada:
+
+* **Vetor de Risco:** Descoberta acidental da URL do script por terceiros, permitindo injeção de linhas falsas ou leitura do JSON financeiro.
+* **Mitigação Técnica:** Inclusão de uma chave secreta estática (`API_SECRET_TOKEN`) validada na primeira linha das funções `doGet(e)` e `doPost(e)`. A Vercel armazena esse token nas variáveis de ambiente de servidor (`process.env.GAS_SECRET_TOKEN`), realizando as chamadas ao Google Sheets via *Server Actions* ou *API Routes* do Next.js (ocultando a URL do Google Apps Script e o token do navegador público).
+
+### 5.2. Concorrência e Prevenção de Condição de Corrida (`LockService`)
+
+* **Vetor de Risco:** Você e sua esposa lançam um gasto simultaneamente no celular no mesmo segundo em que o gatilho de 1 minuto do `syncTasksToSheets()` está inserindo uma linha na planilha, causando sobrescrita de linha no Google Sheets.
+* **Mitigação Técnica:** Uso nativo do `LockService.getScriptLock()` do Google Apps Script envolvendo o bloco de escrita (`sheet.appendRow`). O script aguarda em fila até 10 segundos pela liberação do *lock* antes de gravar, garantindo atomicidade transacional (ACID simplificado).
+
+### 5.3. Resiliência contra Quedas e Limites de Cota da Google
+
+* **Limites Operacionais do Google Apps Script (Conta Gratuita `@gmail.com`):**
+* Tempo máximo de execução por script: 6 minutos (nosso script executa em ~0.4 segundos).
+* Gatilhos de tempo: até 90 minutos acumulados de tempo de CPU por dia. Para evitar atingir esse teto no gatilho de 1 minuto do `syncTasksToSheets`, o acionador pode ser configurado para rodar a cada **5 ou 10 minutos**, acrescido de um botão `"🔄 Sincronizar Agora"` no topo do Web App da Vercel que dispara a leitura do Tasks sob demanda quando vocês abrirem o dashboard.
+
+
+* **Backup Automático:** Como o banco de dados é um arquivo nativo do Google Sheets, o Google Drive mantém automaticamente o histórico completo de revisões célula por célula (*Version History*), permitindo reverter qualquer exclusão acidental em dois cliques.
+
+---
+
+## 6. Implementação, Fases e Viabilidade Operacional
+
+O roteiro de implantação (Roadmap) está dimensionado para execução em um único final de semana, dividido em quatro marcos sequenciais de engenharia:
+
+### Marco 1: Fundação de Dados e Motor Serverless (Horas 1 a 2)
+
+* Criação da planilha mestra no Google Drive com as 4 abas padronizadas (`Transacoes`, `Investimentos_Metas`, `Provisoes_Anuais`, `Config_Casal`).
+* Implantação do código no Google Apps Script com suporte a `LockService`, validação de token e desdobramento automático de parcelas (`1..N`).
+* Ativação do serviço avançado **Google Tasks API** no painel do Apps Script e configuração do gatilho temporal.
+
+### Marco 2: Engenharia do Gem e Canais Mobile (Hora 3)
+
+* Criação da lista `"Finanças"` no aplicativo Google Tasks.
+* Configuração do **Gem** no aplicativo oficial do Gemini com o prompt determinístico de 9 campos separados por `;` e compartilhamento do Gem com a esposa.
+* Teste de ponta a ponta (fala no celular $\rightarrow$ criação da tarefa no Tasks $\rightarrow$ absorção pelo script $\rightarrow$ linha populada na planilha).
+
+### Marco 3: Desenvolvimento do Front-end Next.js (Horas 4 a 7)
+
+* Inicialização do repositório Next.js (App Router + TypeScript + Tailwind CSS + Recharts).
+* Construção da camada de agregação de dados que transforma o array bruto de transações nos objetos consumidos pelos dois Gráficos de Pizza, pela Planilha de Alocação Dinâmica e pelo card de Reconciliação de Cota Individual.
+* Implementação do componente `QuickEntry` com parser Regex em tempo real.
+
+### Marco 4: Deploy na Vercel e Configuração PWA (Hora 8)
+
+* Conexão do repositório GitHub à Vercel com injeção das variáveis de ambiente (`GAS_URL` e `GAS_SECRET_TOKEN`).
+* Adição do arquivo `manifest.json` e ícones para instalação do Web App na tela inicial do celular (iOS e Android) em modo *Standalone* (tela cheia).
+
+### Métricas de Aferição de Sucesso Operacional
+
+* **Custo de Infraestrutura e IA:** R$ 0,00 mensais perpétuos.
+* **Tempo de Ingestão (Time-to-Log):** Inferior a 5 segundos via barra Regex ou comando de voz no Gem; 0 segundos via interceptação de notificação.
+* **Taxa de Cobertura Orçamentária:** 100% da renda rastreada entre *Custos*, *Provisões Anuais*, *Investimentos/Metas* e *Cotas Individuais*, com zero atrito prescritivo.
+
+---
+
