@@ -6,34 +6,14 @@ import {
   FlowTypeSchema,
   MemberSchema,
   ScopeSchema,
-  type DashboardPayload,
-  type Transaction,
 } from "@/lib/domain/types";
 import {
-  getRealisticDemoDataset,
+  getOrInitDemoStore,
   getWorstCaseDataset,
+  getWorstCaseExtraTransactions,
+  prependWorstCaseExtraTransactions,
+  resetDemoMemoryStore,
 } from "@/lib/mocks/demo-datasets";
-
-/**
- * Store interativo em memória no servidor para o modo DEMO.
- * Permite adicionar transações via QuickEntry sem GAS_URL configurado
- * e ver o desdobramento imediato de parcelas e recálculo dos gráficos.
- */
-let demoMemoryStore: DashboardPayload | null = null;
-let worstCaseExtraTransactions: Transaction[] = [];
-
-function getOrInitDemoStore(): DashboardPayload {
-  if (!demoMemoryStore) {
-    demoMemoryStore = getRealisticDemoDataset();
-  }
-  return demoMemoryStore;
-}
-
-export function resetDemoMemoryStore(): DashboardPayload {
-  demoMemoryStore = getRealisticDemoDataset();
-  worstCaseExtraTransactions = [];
-  return demoMemoryStore;
-}
 
 const CreateTransactionRequestSchema = z.object({
   id_base: z.string().optional(),
@@ -95,7 +75,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(
       {
         ...baseWorst,
-        transacoes: [...worstCaseExtraTransactions, ...baseWorst.transacoes],
+        transacoes: [
+          ...getWorstCaseExtraTransactions(),
+          ...baseWorst.transacoes,
+        ],
         timestamp: new Date().toISOString(),
         mode: "WORST_CASE" as const,
         isConnectedToSheets,
@@ -386,7 +369,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   );
 
   if (effectiveMode === "WORST_CASE") {
-    worstCaseExtraTransactions = [...parcelas, ...worstCaseExtraTransactions];
+    prependWorstCaseExtraTransactions(parcelas);
   } else {
     store.transacoes = [...parcelas, ...store.transacoes];
     store.timestamp = new Date().toISOString();

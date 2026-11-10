@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import {
   getRealisticDemoDataset,
   getWorstCaseDataset,
+  resetDemoMemoryStore,
 } from "../demo-datasets";
 import {
   calculateCoupleSettlement,
@@ -10,7 +11,7 @@ import {
   projectFutureInvoices,
 } from "@/lib/domain/financial-engine";
 import { DashboardPayloadSchema } from "@/lib/domain/types";
-import { GET, POST, resetDemoMemoryStore } from "@/app/api/sheets/route";
+import { GET, POST } from "@/app/api/sheets/route";
 
 describe("demo-datasets & /api/sheets BFF Route", () => {
   beforeEach(() => {

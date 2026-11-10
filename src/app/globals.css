@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --bg-base: #090A0F;
+  --bg-card: #11131A;
+  --bg-elevated: #171A24;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-highlight: rgba(255, 255, 255, 0.14);
+  --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html {
+  background-color: var(--bg-base);
+  color: #F4F5F8;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-height: 100svh;
+  background-color: var(--bg-base);
+  background-image:
+    radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.07) 0%, transparent 42%),
+    radial-gradient(circle at 88% 4%, rgba(244, 114, 182, 0.06) 0%, transparent 40%),
+    radial-gradient(circle at 50% 100%, rgba(16, 185, 129, 0.05) 0%, transparent 48%);
+  overscroll-behavior-y: none;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Tabular numbers for financial alignment to the cent */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "zero" 1;
+}
+
+/* Tactile press feedback for interactive controls (emil-design-eng & apple-design) */
+button,
+[role="button"],
+select {
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.pressable {
+  transition:
+    transform 120ms var(--ease-out-quart),
+    background-color 150ms var(--ease-out-quart),
+    border-color 150ms var(--ease-out-quart),
+    color 150ms var(--ease-out-quart),
+    opacity 150ms var(--ease-out-quart);
+}
+
+.pressable:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Choreographed entrance animation for dashboard sections */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-enter {
+  animation: fadeSlideUp 320ms var(--ease-out-expo) both;
+}
+
+.delay-1 {
+  animation-delay: 40ms;
+}
+.delay-2 {
+  animation-delay: 80ms;
+}
+.delay-3 {
+  animation-delay: 120ms;
+}
+.delay-4 {
+  animation-delay: 160ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .pressable:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* Subtle custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(9, 10, 15, 0.6);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}

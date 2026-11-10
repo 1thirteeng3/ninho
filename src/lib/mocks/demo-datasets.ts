@@ -939,3 +939,27 @@ export function getWorstCaseDataset(
     mode: "WORST_CASE",
   };
 }
+
+let demoMemoryStore: DashboardPayload | null = null;
+let worstCaseExtraTransactions: Transaction[] = [];
+
+export function getOrInitDemoStore(): DashboardPayload {
+  if (!demoMemoryStore) {
+    demoMemoryStore = getRealisticDemoDataset();
+  }
+  return demoMemoryStore;
+}
+
+export function resetDemoMemoryStore(): DashboardPayload {
+  demoMemoryStore = getRealisticDemoDataset();
+  worstCaseExtraTransactions = [];
+  return demoMemoryStore;
+}
+
+export function getWorstCaseExtraTransactions(): Transaction[] {
+  return worstCaseExtraTransactions;
+}
+
+export function prependWorstCaseExtraTransactions(txs: Transaction[]): void {
+  worstCaseExtraTransactions = [...txs, ...worstCaseExtraTransactions];
+}
