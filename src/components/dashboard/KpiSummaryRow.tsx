@@ -2,9 +2,9 @@
 
 import React, { useMemo } from "react";
 import {
-  Activity,
   PiggyBank,
-  Scale,
+  ShoppingBag,
+  Sparkles,
   TrendingUp,
 } from "lucide-react";
 import {
@@ -60,119 +60,124 @@ export function KpiSummaryRow({
 
   return (
     <section
-      aria-label="Indicadores Principais do Mês"
+      aria-label="Resumo do Mês"
       className="animate-enter delay-1 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
     >
-      {/* 1. Renda do Mês (R_m) */}
-      <article className="flex flex-col justify-between rounded-2xl border border-white/[0.08] bg-[#11131A] p-4 shadow-lg min-w-0">
+      {/* 1. Entradas do Mês */}
+      <article className="flex flex-col justify-between rounded-2xl border border-rose-500/20 bg-[#1B0E18] p-4 shadow-lg shadow-rose-950/20 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
-              Renda do Mês (R_m)
+            <p className="text-xs font-semibold uppercase tracking-wider text-rose-200/75">
+              Entradas do Mês
             </p>
-            <p className="mt-1.5 text-2xl font-semibold tracking-tight text-white tabular-nums truncate">
+            <p className="mt-1.5 text-2xl font-bold tracking-tight text-white tabular-nums truncate">
               {formatBRL(allocation.rendaTotal)}
             </p>
           </div>
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-300">
             <TrendingUp className="h-4 w-4" />
           </span>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-2.5 text-xs tabular-nums">
-          <span className="text-sky-300 truncate">
-            Giovanni: <strong>{formatBRL(memberIncomeBreakdown.giovanni)}</strong>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-rose-500/15 pt-2.5 text-xs tabular-nums">
+          <span className="text-rose-200 truncate">
+            Giovanni:{" "}
+            <strong className="text-white">
+              {formatBRL(memberIncomeBreakdown.giovanni)}
+            </strong>
           </span>
           <span className="text-pink-300 truncate">
             Maria Luiza:{" "}
-            <strong>{formatBRL(memberIncomeBreakdown.mariaLuiza)}</strong>
+            <strong className="text-white">
+              {formatBRL(memberIncomeBreakdown.mariaLuiza)}
+            </strong>
           </span>
         </div>
       </article>
 
-      {/* 2. Custos Operacionais (Neutralidade Descritiva — sem alertas vermelhos) */}
-      <article className="flex flex-col justify-between rounded-2xl border border-white/[0.08] bg-[#11131A] p-4 shadow-lg min-w-0">
+      {/* 2. Gastos do Mês */}
+      <article className="flex flex-col justify-between rounded-2xl border border-rose-500/20 bg-[#1B0E18] p-4 shadow-lg shadow-rose-950/20 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
-              Custos Operacionais (∑|C_k,m|)
+            <p className="text-xs font-semibold uppercase tracking-wider text-rose-200/75">
+              Gastos do Mês
             </p>
-            <p className="mt-1.5 text-2xl font-semibold tracking-tight text-white tabular-nums truncate">
+            <p className="mt-1.5 text-2xl font-bold tracking-tight text-white tabular-nums truncate">
               {formatBRL(allocation.custosTotal)}
             </p>
           </div>
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-500/25 bg-indigo-500/10 text-indigo-400">
-            <Activity className="h-4 w-4" />
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-rose-400/30 bg-rose-500/15 text-rose-300">
+            <ShoppingBag className="h-4 w-4" />
           </span>
         </div>
 
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/[0.06] pt-2.5 text-xs tabular-nums">
-          <span className="text-slate-400">Peso sobre a renda (α_m):</span>
-          <span className="inline-flex items-center rounded-md border border-indigo-500/25 bg-indigo-500/10 px-2 py-0.5 font-semibold text-indigo-200">
+        <div className="mt-3 flex items-center justify-between gap-2 border-t border-rose-500/15 pt-2.5 text-xs tabular-nums">
+          <span className="text-rose-200/75">Fatia da renda:</span>
+          <span className="inline-flex items-center rounded-md border border-rose-400/30 bg-rose-500/15 px-2 py-0.5 font-semibold text-rose-100">
             {allocation.rendaTotal > 0
               ? formatPct(allocation.percentualCustos)
-              : "0,0% (Sem Renda)"}
+              : "Sem entradas no mês"}
           </span>
         </div>
       </article>
 
-      {/* 3. Investimentos & Provisões */}
-      <article className="flex flex-col justify-between rounded-2xl border border-white/[0.08] bg-[#11131A] p-4 shadow-lg min-w-0">
+      {/* 3. Guardado no Mês */}
+      <article className="flex flex-col justify-between rounded-2xl border border-rose-500/20 bg-[#1B0E18] p-4 shadow-lg shadow-rose-950/20 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
-              Investimentos & Provisões
+            <p className="text-xs font-semibold uppercase tracking-wider text-rose-200/75">
+              Guardado no Mês
             </p>
-            <p className="mt-1.5 text-2xl font-semibold tracking-tight text-emerald-300 tabular-nums truncate">
+            <p className="mt-1.5 text-2xl font-bold tracking-tight text-pink-300 tabular-nums truncate">
               {formatBRL(totalPoupado)}
             </p>
           </div>
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-pink-400/30 bg-pink-500/15 text-pink-300">
             <PiggyBank className="h-4 w-4" />
           </span>
         </div>
 
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/[0.06] pt-2.5 text-xs tabular-nums">
-          <span className="text-slate-400 truncate">
-            Aportes {formatBRL(allocation.investimentosTotal)} + Sinking{" "}
+        <div className="mt-3 flex items-center justify-between gap-2 border-t border-rose-500/15 pt-2.5 text-xs tabular-nums">
+          <span className="text-rose-200/75 truncate">
+            Investido {formatBRL(allocation.investimentosTotal)} + Reserva{" "}
             {formatBRL(allocation.provisoesTotal)}
           </span>
-          <span className="shrink-0 inline-flex items-center rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 font-semibold text-emerald-300">
-            β_m {formatPct(taxaPoupancaPct)}
+          <span className="shrink-0 inline-flex items-center rounded-md border border-pink-400/30 bg-pink-500/15 px-2 py-0.5 font-semibold text-pink-200">
+            {formatPct(taxaPoupancaPct)}
           </span>
         </div>
       </article>
 
-      {/* 4. Saldo Residual de Caixa (Delta_m) */}
-      <article className="flex flex-col justify-between rounded-2xl border border-white/[0.08] bg-[#11131A] p-4 shadow-lg min-w-0">
+      {/* 4. Sobra Livre do Mês */}
+      <article className="flex flex-col justify-between rounded-2xl border border-rose-500/20 bg-[#1B0E18] p-4 shadow-lg shadow-rose-950/20 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
-              Saldo Residual de Caixa (Δ_m)
+            <p className="text-xs font-semibold uppercase tracking-wider text-rose-200/75">
+              Sobra Livre do Mês
             </p>
             <p
-              className={`mt-1.5 text-2xl font-semibold tracking-tight tabular-nums truncate ${
+              className={`mt-1.5 text-2xl font-bold tracking-tight tabular-nums truncate ${
                 allocation.saldoResidual >= 0
-                  ? "text-cyan-300"
+                  ? "text-emerald-300"
                   : "text-amber-300"
               }`}
             >
               {formatBRL(allocation.saldoResidual, true)}
             </p>
           </div>
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-500/25 bg-cyan-500/10 text-cyan-400">
-            <Scale className="h-4 w-4" />
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-fuchsia-400/30 bg-fuchsia-500/15 text-fuchsia-300">
+            <Sparkles className="h-4 w-4" />
           </span>
         </div>
 
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/[0.06] pt-2.5 text-xs">
-          <span className="text-slate-400 truncate">
+        <div className="mt-3 flex items-center justify-between gap-2 border-t border-rose-500/15 pt-2.5 text-xs">
+          <span className="text-rose-200/75 truncate">
             {allocation.saldoResidual >= 0
-              ? "Liquidez livre disponível para alocação"
-              : "Coberto por saldo acumulado / reserva"}
+              ? "Disponível livre na conta"
+              : "Coberto pela reserva acumulada"}
           </span>
-          <span className="shrink-0 rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] font-medium text-slate-300">
-            {viewMode === "CAIXA" ? "Regime Caixa" : "Competência"}
+          <span className="shrink-0 rounded-md border border-rose-400/20 bg-rose-500/10 px-2 py-0.5 text-[11px] font-medium text-rose-200">
+            {viewMode === "CAIXA" ? "Pela Fatura" : "Pela Compra"}
           </span>
         </div>
       </article>

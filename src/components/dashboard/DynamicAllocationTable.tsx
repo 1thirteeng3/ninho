@@ -5,8 +5,6 @@ import {
   ChevronDown,
   ChevronRight,
   Filter,
-  Layers,
-  ListFilter,
   Table2,
 } from "lucide-react";
 import {
@@ -24,10 +22,6 @@ import {
   CATEGORY_COLORS,
   formatBRL,
   formatPct,
-  formatShortDate,
-  getFlowBadgeStyle,
-  getMemberBadgeStyle,
-  getScopeBadgeLabel,
 } from "@/lib/formatters";
 
 interface DynamicAllocationTableProps {
@@ -64,15 +58,6 @@ export function DynamicAllocationTable({
     [transactions, yearMonth, viewMode]
   );
 
-  const filteredTransactions = useMemo(() => {
-    if (selectedCategoryFilter === "ALL") {
-      return monthTransactions;
-    }
-    return monthTransactions.filter(
-      (tx) => tx.categoria === selectedCategoryFilter
-    );
-  }, [monthTransactions, selectedCategoryFilter]);
-
   function toggleGroup(group: "custos" | "provisoes" | "investimentos") {
     setExpandedGroups((prev) => ({
       ...prev,
@@ -82,72 +67,82 @@ export function DynamicAllocationTable({
 
   return (
     <section
-      aria-label="Módulo 3: Planilha Dinâmica de Alocação e Auditoria"
-      className="animate-enter delay-3 rounded-2xl border border-white/[0.08] bg-[#11131A] p-5 shadow-lg min-w-0"
+      aria-label="Resumo por Categoria do Mês"
+      className="animate-enter delay-3 rounded-2xl border border-rose-500/20 bg-[#1B0E18] p-5 shadow-lg shadow-rose-950/20 min-w-0"
     >
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-400">
+            <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-rose-500/20 text-rose-300">
               <Table2 className="h-3.5 w-3.5" />
             </span>
             <h2 className="text-sm font-semibold text-white truncate">
-              Módulo 3 · Planilha Dinâmica de Alocação Mensal & Ledger Auditável
+              Resumo por Categoria do Mês
             </h2>
           </div>
-          <p className="mt-1 text-xs text-slate-400">
-            Espelho contábil descritivo das 6 categorias de Custo, Provisões
-            Anuais e Metas de Investimento
+          <p className="mt-1 text-xs text-rose-200/70">
+            Visão organizada dos gastos do dia a dia, reserva para despesas
+            anuais e investimentos do mês
           </p>
         </div>
 
         <div className="flex items-center gap-2 text-xs">
-          <span className="rounded-lg border border-white/10 bg-[#090A0F] px-2.5 py-1 text-slate-300 tabular-nums">
+          {selectedCategoryFilter !== "ALL" && (
+            <button
+              type="button"
+              onClick={() => setSelectedCategoryFilter("ALL")}
+              className="pressable inline-flex items-center gap-1 rounded-lg border border-rose-400/30 bg-rose-500/15 px-2.5 py-1 text-xs font-medium text-rose-100"
+            >
+              <Filter className="h-3 w-3" />
+              <span>Categoria: {selectedCategoryFilter} (Limpar)</span>
+            </button>
+          )}
+          <span className="rounded-lg border border-rose-400/20 bg-[#120910] px-2.5 py-1 text-rose-100 tabular-nums">
             {monthTransactions.length} lançamentos no mês
           </span>
         </div>
       </div>
 
       {/* Allocation Table */}
-      <div className="mt-4 overflow-x-auto rounded-xl border border-white/[0.07] bg-[#090A0F]/60">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-rose-500/15 bg-[#120910]/60">
         <table className="w-full min-w-[640px] border-collapse text-left text-xs">
           <thead>
-            <tr className="border-b border-white/[0.08] bg-white/[0.02] text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              <th className="py-3 pl-4 pr-3">Grupo / Categoria Oficial</th>
-              <th className="px-3 py-3 text-right">Realizado no Mês</th>
-              <th className="px-3 py-3 text-right">% da Renda (R_m)</th>
-              <th className="px-4 py-3">Proporção Visual / Progresso da Meta</th>
+            <tr className="border-b border-rose-500/15 bg-rose-500/[0.04] text-[11px] font-semibold uppercase tracking-wider text-rose-200/75">
+              <th className="py-3 pl-4 pr-3">Grupo / Categoria</th>
+              <th className="px-3 py-3 text-right">Valor no Mês</th>
+              <th className="px-3 py-3 text-right">Fatia da Renda</th>
+              <th className="px-4 py-3">Participação Visual / Progresso</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/[0.05]">
-            {/* GRUPO 1: CUSTOS OPERACIONAIS */}
-            <tr className="bg-indigo-500/[0.06]">
-              <td className="py-2.5 pl-4 pr-3 font-semibold text-indigo-200">
+          <tbody className="divide-y divide-rose-500/10">
+            {/* GRUPO 1: GASTOS DO DIA A DIA */}
+            <tr className="bg-rose-500/[0.08]">
+              <td className="py-2.5 pl-4 pr-3 font-semibold text-rose-100">
                 <button
                   type="button"
                   onClick={() => toggleGroup("custos")}
                   className="pressable inline-flex items-center gap-1.5"
                 >
                   {expandedGroups.custos ? (
-                    <ChevronDown className="h-3.5 w-3.5 text-indigo-400" />
+                    <ChevronDown className="h-3.5 w-3.5 text-rose-400" />
                   ) : (
-                    <ChevronRight className="h-3.5 w-3.5 text-indigo-400" />
+                    <ChevronRight className="h-3.5 w-3.5 text-rose-400" />
                   )}
-                  <span>1. Custos Operacionais (6 Categorias)</span>
+                  <span>1. Gastos do Dia a Dia e Contas Fixas</span>
                 </button>
               </td>
               <td className="px-3 py-2.5 text-right font-semibold text-white tabular-nums">
                 {formatBRL(allocation.custosTotal)}
               </td>
-              <td className="px-3 py-2.5 text-right font-semibold text-indigo-200 tabular-nums">
+              <td className="px-3 py-2.5 text-right font-semibold text-rose-200 tabular-nums">
                 {formatPct(allocation.percentualCustos)}
               </td>
               <td className="px-4 py-2.5">
                 <div className="flex items-center gap-2">
-                  <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-white/[0.08]">
+                  <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-rose-500/15">
                     <div
-                      className="h-full rounded-full bg-indigo-400 transition-all duration-300"
+                      className="h-full rounded-full bg-rose-400 transition-all duration-300"
                       style={{
                         width: `${Math.min(
                           100,
@@ -156,8 +151,8 @@ export function DynamicAllocationTable({
                       }}
                     />
                   </div>
-                  <span className="text-[11px] text-slate-400">
-                    Neutro descritivo
+                  <span className="text-[11px] text-rose-200/70">
+                    Despesas mensais
                   </span>
                 </div>
               </td>
@@ -165,7 +160,7 @@ export function DynamicAllocationTable({
 
             {expandedGroups.custos &&
               allocation.categoriasCusto.map((item) => {
-                const color = CATEGORY_COLORS[item.categoria] ?? "#6366F1";
+                const color = CATEGORY_COLORS[item.categoria] ?? "#FB7185";
                 const barWidth = Math.min(
                   100,
                   Math.max(0, item.percentualRenda)
@@ -180,8 +175,8 @@ export function DynamicAllocationTable({
                         isSelected ? "ALL" : item.categoria
                       )
                     }
-                    className={`cursor-pointer transition-colors hover:bg-white/[0.03] ${
-                      isSelected ? "bg-indigo-500/10" : ""
+                    className={`cursor-pointer transition-colors hover:bg-rose-500/[0.05] ${
+                      isSelected ? "bg-rose-500/15" : ""
                     }`}
                   >
                     <td className="py-2.5 pl-9 pr-3">
@@ -190,20 +185,20 @@ export function DynamicAllocationTable({
                           className="h-2 w-2 shrink-0 rounded-full"
                           style={{ backgroundColor: color }}
                         />
-                        <span className="font-medium text-slate-200">
+                        <span className="font-medium text-rose-100">
                           {item.categoria}
                         </span>
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 text-right font-medium text-slate-100 tabular-nums">
+                    <td className="px-3 py-2.5 text-right font-medium text-white tabular-nums">
                       {formatBRL(item.valor)}
                     </td>
-                    <td className="px-3 py-2.5 text-right text-slate-300 tabular-nums">
+                    <td className="px-3 py-2.5 text-right text-rose-200 tabular-nums">
                       {formatPct(item.percentualRenda)}
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-white/[0.06]">
+                        <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-rose-500/15">
                           <div
                             className="h-full rounded-full transition-all duration-300"
                             style={{
@@ -218,8 +213,8 @@ export function DynamicAllocationTable({
                 );
               })}
 
-            {/* GRUPO 2: PROVISÕES ANUAIS (SINKING FUNDS) */}
-            <tr className="bg-amber-500/[0.06]">
+            {/* GRUPO 2: RESERVA P/ DESPESAS ANUAIS */}
+            <tr className="bg-amber-500/[0.08]">
               <td className="py-2.5 pl-4 pr-3 font-semibold text-amber-200">
                 <button
                   type="button"
@@ -231,7 +226,7 @@ export function DynamicAllocationTable({
                   ) : (
                     <ChevronRight className="h-3.5 w-3.5 text-amber-400" />
                   )}
-                  <span>2. Provisões Anuais (Sinking Funds 1/12)</span>
+                  <span>2. Reserva p/ Despesas Anuais (IPVA / Seguro)</span>
                 </button>
               </td>
               <td className="px-3 py-2.5 text-right font-semibold text-white tabular-nums">
@@ -242,7 +237,7 @@ export function DynamicAllocationTable({
               </td>
               <td className="px-4 py-2.5">
                 <div className="flex items-center gap-2">
-                  <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-white/[0.08]">
+                  <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-rose-500/15">
                     <div
                       className="h-full rounded-full bg-amber-400 transition-all duration-300"
                       style={{
@@ -269,7 +264,7 @@ export function DynamicAllocationTable({
                       : "Fundo Anual (Carro/Impostos)"
                   )
                 }
-                className={`cursor-pointer transition-colors hover:bg-white/[0.03] ${
+                className={`cursor-pointer transition-colors hover:bg-rose-500/[0.05] ${
                   selectedCategoryFilter === "Fundo Anual (Carro/Impostos)"
                     ? "bg-amber-500/10"
                     : ""
@@ -278,50 +273,51 @@ export function DynamicAllocationTable({
                 <td className="py-2.5 pl-9 pr-3">
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />
-                    <span className="font-medium text-slate-200">
+                    <span className="font-medium text-rose-100">
                       Fundo Anual (Carro/Impostos)
                     </span>
                   </div>
                 </td>
-                <td className="px-3 py-2.5 text-right font-medium text-slate-100 tabular-nums">
+                <td className="px-3 py-2.5 text-right font-medium text-white tabular-nums">
                   {formatBRL(allocation.provisoesTotal)}
                 </td>
-                <td className="px-3 py-2.5 text-right text-slate-300 tabular-nums">
+                <td className="px-3 py-2.5 text-right text-rose-200 tabular-nums">
                   {formatPct(allocation.percentualProvisoes)}
                 </td>
-                <td className="px-4 py-2.5 text-[11px] text-slate-400">
-                  Cota mensal recomendada: R$ 500,00 (R$ 6.000,00 / 12 meses)
+                <td className="px-4 py-2.5 text-[11px] text-rose-200/75">
+                  Valor mensal sugerido: R$ 500,00 para cobrir R$ 6.000,00 no
+                  ano
                 </td>
               </tr>
             )}
 
-            {/* GRUPO 3: INVESTIMENTOS & METAS */}
-            <tr className="bg-emerald-500/[0.06]">
-              <td className="py-2.5 pl-4 pr-3 font-semibold text-emerald-200">
+            {/* GRUPO 3: INVESTIMENTOS DO MÊS */}
+            <tr className="bg-pink-500/[0.08]">
+              <td className="py-2.5 pl-4 pr-3 font-semibold text-pink-200">
                 <button
                   type="button"
                   onClick={() => toggleGroup("investimentos")}
                   className="pressable inline-flex items-center gap-1.5"
                 >
                   {expandedGroups.investimentos ? (
-                    <ChevronDown className="h-3.5 w-3.5 text-emerald-400" />
+                    <ChevronDown className="h-3.5 w-3.5 text-pink-400" />
                   ) : (
-                    <ChevronRight className="h-3.5 w-3.5 text-emerald-400" />
+                    <ChevronRight className="h-3.5 w-3.5 text-pink-400" />
                   )}
-                  <span>3. Investimentos & Metas de Acumulação</span>
+                  <span>3. Investimentos do Mês & Caixinhas</span>
                 </button>
               </td>
-              <td className="px-3 py-2.5 text-right font-semibold text-emerald-300 tabular-nums">
+              <td className="px-3 py-2.5 text-right font-semibold text-pink-200 tabular-nums">
                 {formatBRL(allocation.investimentosTotal)}
               </td>
-              <td className="px-3 py-2.5 text-right font-semibold text-emerald-200 tabular-nums">
+              <td className="px-3 py-2.5 text-right font-semibold text-pink-200 tabular-nums">
                 {formatPct(allocation.percentualInvestimentos)}
               </td>
               <td className="px-4 py-2.5">
                 <div className="flex items-center gap-2">
-                  <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-white/[0.08]">
+                  <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-rose-500/15">
                     <div
-                      className="h-full rounded-full bg-emerald-400 transition-all duration-300"
+                      className="h-full rounded-full bg-pink-400 transition-all duration-300"
                       style={{
                         width: `${Math.min(
                           100,
@@ -330,8 +326,8 @@ export function DynamicAllocationTable({
                       }}
                     />
                   </div>
-                  <span className="text-[11px] text-emerald-300/80">
-                    Progresso rumo ao Valor Alvo
+                  <span className="text-[11px] text-pink-200/80">
+                    Progresso das nossas metas
                   </span>
                 </div>
               </td>
@@ -350,7 +346,7 @@ export function DynamicAllocationTable({
                     : 0;
                 const clampedGoalPct = Math.min(100, Math.max(0, goalPct));
                 const color =
-                  CATEGORY_COLORS[invItem.categoria as Category] ?? "#10B981";
+                  CATEGORY_COLORS[invItem.categoria as Category] ?? "#EC4899";
                 const isSelected =
                   selectedCategoryFilter === invItem.categoria;
 
@@ -362,8 +358,8 @@ export function DynamicAllocationTable({
                         isSelected ? "ALL" : invItem.categoria
                       )
                     }
-                    className={`cursor-pointer transition-colors hover:bg-white/[0.03] ${
-                      isSelected ? "bg-emerald-500/10" : ""
+                    className={`cursor-pointer transition-colors hover:bg-rose-500/[0.05] ${
+                      isSelected ? "bg-pink-500/15" : ""
                     }`}
                   >
                     <td className="py-2.5 pl-9 pr-3">
@@ -372,21 +368,21 @@ export function DynamicAllocationTable({
                           className="h-2 w-2 shrink-0 rounded-full"
                           style={{ backgroundColor: color }}
                         />
-                        <span className="font-medium text-slate-200">
+                        <span className="font-medium text-rose-100">
                           {invItem.categoria}
                         </span>
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 text-right font-medium text-emerald-300 tabular-nums">
+                    <td className="px-3 py-2.5 text-right font-medium text-pink-200 tabular-nums">
                       {formatBRL(invItem.valor)}
                     </td>
-                    <td className="px-3 py-2.5 text-right text-slate-300 tabular-nums">
+                    <td className="px-3 py-2.5 text-right text-rose-200 tabular-nums">
                       {formatPct(invItem.percentualRenda)}
                     </td>
                     <td className="px-4 py-2.5">
                       {matchingGoal ? (
                         <div className="flex flex-wrap items-center gap-2 tabular-nums">
-                          <div className="h-1.5 w-28 overflow-hidden rounded-full bg-white/[0.07]">
+                          <div className="h-1.5 w-28 overflow-hidden rounded-full bg-rose-500/15">
                             <div
                               className="h-full rounded-full transition-all duration-300"
                               style={{
@@ -395,15 +391,15 @@ export function DynamicAllocationTable({
                               }}
                             />
                           </div>
-                          <span className="text-[11px] text-slate-300">
-                            {formatBRL(saldoAtual)} / {formatBRL(valorAlvo)} —{" "}
-                            <strong className="text-emerald-300">
+                          <span className="text-[11px] text-rose-100">
+                            {formatBRL(saldoAtual)} de {formatBRL(valorAlvo)} —{" "}
+                            <strong className="text-pink-300">
                               {formatPct(goalPct)}
                             </strong>
                           </span>
                         </div>
                       ) : (
-                        <span className="text-[11px] text-slate-500">—</span>
+                        <span className="text-[11px] text-rose-200/40">—</span>
                       )}
                     </td>
                   </tr>
@@ -411,123 +407,6 @@ export function DynamicAllocationTable({
               })}
           </tbody>
         </table>
-      </div>
-
-      {/* Auditable Transactions Ledger for the Selected Month */}
-      <div className="mt-6">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2">
-            <ListFilter className="h-4 w-4 text-indigo-400" />
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-              Transações Auditáveis do Mês (
-              {viewMode === "CAIXA" ? "Visão Caixa" : "Visão Competência"})
-            </h3>
-          </div>
-
-          {/* Filter Pills */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {selectedCategoryFilter !== "ALL" && (
-              <button
-                type="button"
-                onClick={() => setSelectedCategoryFilter("ALL")}
-                className="pressable inline-flex items-center gap-1 rounded-lg border border-indigo-500/30 bg-indigo-500/15 px-2.5 py-1 text-xs font-medium text-indigo-200"
-              >
-                <Filter className="h-3 w-3" />
-                <span>Filtro: {selectedCategoryFilter} (Limpar)</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {filteredTransactions.length === 0 ? (
-          <div className="rounded-xl border border-white/[0.06] bg-[#090A0F]/40 p-6 text-center text-xs text-slate-400">
-            Nenhuma transação encontrada para o filtro selecionado neste mês.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto pr-1">
-            {filteredTransactions.map((tx) => {
-              const flowBadge = getFlowBadgeStyle(tx.tipo_fluxo);
-              const scopeBadge = getScopeBadgeLabel(tx.escopo);
-              const hasDateDivergence = tx.data_competencia !== tx.data_caixa;
-
-              return (
-                <div
-                  key={tx.id}
-                  className="flex flex-col justify-between gap-2 rounded-xl border border-white/[0.06] bg-[#090A0F]/70 px-3.5 py-2.5 text-xs sm:flex-row sm:items-center min-w-0"
-                >
-                  {/* Left: Description + Category + Dates */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span
-                        className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${flowBadge.className}`}
-                      >
-                        {flowBadge.label}
-                      </span>
-                      <span className="rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-medium text-slate-300">
-                        {tx.categoria}
-                      </span>
-                      {tx.total_parcelas > 1 && (
-                        <span className="inline-flex items-center gap-0.5 rounded border border-amber-500/30 bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300 tabular-nums">
-                          <Layers className="h-2.5 w-2.5" />
-                          Parcela {tx.parcela_atual}/{tx.total_parcelas}
-                        </span>
-                      )}
-                    </div>
-
-                    <p
-                      className="mt-1 font-medium text-white break-words"
-                      title={tx.descricao}
-                    >
-                      {tx.descricao}
-                    </p>
-
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-400 tabular-nums">
-                      <span>
-                        Comp: <strong>{formatShortDate(tx.data_competencia)}</strong>
-                      </span>
-                      <span>•</span>
-                      <span
-                        className={
-                          hasDateDivergence ? "text-cyan-300 font-medium" : ""
-                        }
-                      >
-                        Caixa: <strong>{formatShortDate(tx.data_caixa)}</strong>
-                      </span>
-                      <span>•</span>
-                      <span className="text-slate-300">{tx.conta}</span>
-                    </div>
-                  </div>
-
-                  {/* Right: Member + Scope + Amount */}
-                  <div className="flex items-center justify-between gap-3 sm:justify-end shrink-0">
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`rounded-md border px-2 py-0.5 text-[11px] font-medium ${getMemberBadgeStyle(
-                          tx.pago_por
-                        )}`}
-                      >
-                        {tx.pago_por}
-                      </span>
-                      <span
-                        className={`rounded-md border px-2 py-0.5 text-[10px] font-medium ${scopeBadge.className}`}
-                      >
-                        {scopeBadge.label}
-                      </span>
-                    </div>
-
-                    <span
-                      className={`text-sm font-semibold tabular-nums ${
-                        tx.valor >= 0 ? "text-emerald-300" : "text-white"
-                      }`}
-                    >
-                      {formatBRL(tx.valor, tx.valor > 0)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     </section>
   );

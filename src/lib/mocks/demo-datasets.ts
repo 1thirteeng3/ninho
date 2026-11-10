@@ -1,9 +1,14 @@
-import { splitInstallmentsWithBillingCycle } from "@/lib/domain/financial-engine";
+import {
+  roundCurrency,
+  splitInstallmentsWithBillingCycle,
+} from "@/lib/domain/financial-engine";
 import type {
   AnnualProvision,
   CoupleConfig,
   DashboardPayload,
+  InvestmentAsset,
   InvestmentGoal,
+  ReceivablePlan,
   Transaction,
 } from "@/lib/domain/types";
 
@@ -80,6 +85,150 @@ const REALISTIC_INVESTMENT_GOALS: InvestmentGoal[] = [
     saldo_bruto_atual: 19620,
   },
 ];
+
+const REALISTIC_INVESTMENT_ASSETS: InvestmentAsset[] = [
+  {
+    id: "asset_casa_tesouro",
+    nome: "Tesouro IPCA+ 2029 (Entrada Apartamento)",
+    tipo_ativo: "Tesouro Direto",
+    rendimento: "IPCA + 6,45% ao ano",
+    liquidez: "D+1 (Marcação a mercado)",
+    instituicao: "XP Investimentos",
+    meta_vinculada: "Casa",
+    titular: "Casal",
+    valor_aportado: 24500,
+    saldo_atual: 26100,
+  },
+  {
+    id: "asset_casa_lci",
+    nome: "LCI Banco Inter Imobiliário Isento IR",
+    tipo_ativo: "LCI / LCA",
+    rendimento: "94% do CDI (Isento de IR)",
+    liquidez: "90 dias",
+    instituicao: "Banco Inter",
+    meta_vinculada: "Casa",
+    titular: "Casal",
+    valor_aportado: 15000,
+    saldo_atual: 15900,
+  },
+  {
+    id: "asset_viagem_caixinha",
+    nome: "Caixinha Nubank Eurotrip & Férias",
+    tipo_ativo: "Caixinha / Conta Remunerada",
+    rendimento: "100% do CDI",
+    liquidez: "Diária imediata",
+    instituicao: "Nubank",
+    meta_vinculada: "Viagem",
+    titular: "Maria Luiza",
+    valor_aportado: 6100,
+    saldo_atual: 6500,
+  },
+  {
+    id: "asset_estudos_cdb",
+    nome: "CDB Itaú Pós-Graduação & Certificações",
+    tipo_ativo: "CDB",
+    rendimento: "108% do CDI",
+    liquidez: "Diária",
+    instituicao: "Itaú",
+    meta_vinculada: "Estudos (Fundo Futuro)",
+    titular: "Giovanni",
+    valor_aportado: 3980,
+    saldo_atual: 4200,
+  },
+  {
+    id: "asset_reserva_caixinha",
+    nome: "Caixinha Reserva de Emergência Casal",
+    tipo_ativo: "Caixinha / Conta Remunerada",
+    rendimento: "100% do CDI",
+    liquidez: "Imediata 24h",
+    instituicao: "Nubank",
+    meta_vinculada: "Reserva & Patrimônio",
+    titular: "Casal",
+    valor_aportado: 11000,
+    saldo_atual: 11820,
+  },
+  {
+    id: "asset_reserva_cdb",
+    nome: "CDB BTG Pactual Liquidez + FIIs",
+    tipo_ativo: "CDB",
+    rendimento: "112% do CDI",
+    liquidez: "Diária",
+    instituicao: "BTG Pactual",
+    meta_vinculada: "Reserva & Patrimônio",
+    titular: "Casal",
+    valor_aportado: 7000,
+    saldo_atual: 7800,
+  },
+];
+
+const REALISTIC_RECEIVABLES: ReceivablePlan[] = [
+  {
+    id: "rec_iphone_antigo",
+    descricao: "Venda do iPhone 13 antigo",
+    pagador_origem: "Pedro (Amigo)",
+    recebedor: "Giovanni",
+    valor_total: 2400,
+    total_parcelas: 3,
+    parcelas_recebidas: 1,
+    proximo_vencimento: "2026-11-15",
+    conta_destino: "Nubank Conjunta",
+    status: "EM_ANDAMENTO",
+  },
+  {
+    id: "rec_reembolso_exames",
+    descricao: "Reembolso Exames Laboratoriais",
+    pagador_origem: "Plano de Saúde Bradesco",
+    recebedor: "Maria Luiza",
+    valor_total: 380,
+    total_parcelas: 1,
+    parcelas_recebidas: 0,
+    proximo_vencimento: "2026-11-20",
+    conta_destino: "Itaú Conjunta",
+    status: "EM_ANDAMENTO",
+  },
+  {
+    id: "rec_consultoria_extra",
+    descricao: "Consultoria Arquitetura & Design",
+    pagador_origem: "Cliente Studio",
+    recebedor: "Casal",
+    valor_total: 1800,
+    total_parcelas: 2,
+    parcelas_recebidas: 1,
+    proximo_vencimento: "2026-12-05",
+    conta_destino: "Nubank Conjunta",
+    status: "EM_ANDAMENTO",
+  },
+];
+
+/**
+ * Recalcula total_aportado e saldo_bruto_atual de cada meta a partir dos ativos vinculados.
+ */
+export function syncGoalsFromAssets(
+  goals: InvestmentGoal[],
+  assets: InvestmentAsset[]
+): InvestmentGoal[] {
+  return goals.map((goal) => {
+    const linked = assets.filter(
+      (a) =>
+        a.meta_vinculada.trim().toLowerCase() ===
+        String(goal.nome).trim().toLowerCase()
+    );
+    if (linked.length === 0) {
+      return { ...goal };
+    }
+    const totalAportado = roundCurrency(
+      linked.reduce((acc, item) => acc + item.valor_aportado, 0)
+    );
+    const saldoBruto = roundCurrency(
+      linked.reduce((acc, item) => acc + item.saldo_atual, 0)
+    );
+    return {
+      ...goal,
+      total_aportado: totalAportado,
+      saldo_bruto_atual: saldoBruto,
+    };
+  });
+}
 
 /**
  * Dataset realista de demonstração para Giovanni e Maria Luiza (arquitetura.txt).
@@ -281,7 +430,7 @@ export function getRealisticDemoDataset(
       data_caixa: "2026-10-15",
       tipo_fluxo: "PROVISAO_ANUAL",
       categoria: "Fundo Anual (Carro/Impostos)",
-      descricao: "Retenção 1/12 Sinking Fund (IPVA + Seguro + Revisão)",
+      descricao: "Reserva Mensal p/ Despesas Anuais (IPVA, Seguro e Revisão)",
       valor: -500,
       conta: "Itaú Conjunta",
       pago_por: "Giovanni",
@@ -544,7 +693,7 @@ export function getRealisticDemoDataset(
       data_caixa: "2026-11-13",
       tipo_fluxo: "PROVISAO_ANUAL",
       categoria: "Fundo Anual (Carro/Impostos)",
-      descricao: "Cota 1/12 Sinking Fund (IPVA, Seguro Auto e Revisão)",
+      descricao: "Reserva Mensal p/ Despesas Anuais (IPVA, Seguro e Revisão)",
       valor: -500,
       conta: "Itaú Conjunta",
       pago_por: "Giovanni",
@@ -624,11 +773,19 @@ export function getRealisticDemoDataset(
     ...checkupOdonto,
   ];
 
+  const initialAssets = REALISTIC_INVESTMENT_ASSETS.map((a) => ({ ...a }));
+  const syncedGoals = syncGoalsFromAssets(
+    REALISTIC_INVESTMENT_GOALS.map((g) => ({ ...g })),
+    initialAssets
+  );
+
   return {
     transacoes,
-    investimentos: REALISTIC_INVESTMENT_GOALS.map((g) => ({ ...g })),
+    investimentos: syncedGoals,
     provisoes: REALISTIC_PROVISIONS.map((p) => ({ ...p })),
     config: DEFAULT_COUPLE_CONFIG.map((c) => ({ ...c })),
+    ativos: initialAssets,
+    recebiveis: REALISTIC_RECEIVABLES.map((r) => ({ ...r })),
     timestamp: new Date().toISOString(),
     mode: "DEMO",
   };
@@ -864,7 +1021,7 @@ export function getWorstCaseDataset(
       data_caixa: "2026-11-11",
       tipo_fluxo: "PROVISAO_ANUAL",
       categoria: "Fundo Anual (Carro/Impostos)",
-      descricao: "Provisão Sinking Fund IPVA/Seguro/Revisão Lote Extra",
+      descricao: "Reserva p/ Despesas Anuais IPVA/Seguro/Revisão Lote Extra",
       valor: -750,
       conta: "Itaú Conjunta",
       pago_por: "Giovanni",
@@ -935,6 +1092,8 @@ export function getWorstCaseDataset(
     investimentos: worstCaseGoals,
     provisoes: REALISTIC_PROVISIONS.map((p) => ({ ...p })),
     config: DEFAULT_COUPLE_CONFIG.map((c) => ({ ...c })),
+    ativos: REALISTIC_INVESTMENT_ASSETS.map((a) => ({ ...a })),
+    recebiveis: REALISTIC_RECEIVABLES.map((r) => ({ ...r })),
     timestamp: new Date().toISOString(),
     mode: "WORST_CASE",
   };
@@ -962,4 +1121,176 @@ export function getWorstCaseExtraTransactions(): Transaction[] {
 
 export function prependWorstCaseExtraTransactions(txs: Transaction[]): void {
   worstCaseExtraTransactions = [...txs, ...worstCaseExtraTransactions];
+}
+
+export function upsertDemoAsset(asset: InvestmentAsset): DashboardPayload {
+  const store = getOrInitDemoStore();
+  const currentAssets = store.ativos ?? [];
+  const existingIndex = currentAssets.findIndex((a) => a.id === asset.id);
+  const nextAssets =
+    existingIndex >= 0
+      ? currentAssets.map((a, idx) => (idx === existingIndex ? { ...asset } : a))
+      : [{ ...asset }, ...currentAssets];
+
+  store.ativos = nextAssets;
+  store.investimentos = syncGoalsFromAssets(store.investimentos, nextAssets);
+  store.timestamp = new Date().toISOString();
+  return store;
+}
+
+export function deleteDemoAsset(id: string): DashboardPayload {
+  const store = getOrInitDemoStore();
+  const nextAssets = (store.ativos ?? []).filter((a) => a.id !== id);
+  store.ativos = nextAssets;
+  store.investimentos = syncGoalsFromAssets(store.investimentos, nextAssets);
+  store.timestamp = new Date().toISOString();
+  return store;
+}
+
+export function deleteDemoTransaction(id: string): DashboardPayload {
+  const store = getOrInitDemoStore();
+  store.transacoes = store.transacoes.filter((t) => t.id !== id);
+  worstCaseExtraTransactions = worstCaseExtraTransactions.filter(
+    (t) => t.id !== id
+  );
+  store.timestamp = new Date().toISOString();
+  return store;
+}
+
+export function upsertDemoReceivable(item: ReceivablePlan): DashboardPayload {
+  const store = getOrInitDemoStore();
+  const current = store.recebiveis ?? [];
+  const idx = current.findIndex((r) => r.id === item.id);
+  const nextReceivables =
+    idx >= 0
+      ? current.map((r, i) => (i === idx ? { ...item } : r))
+      : [{ ...item }, ...current];
+
+  store.recebiveis = nextReceivables;
+  store.timestamp = new Date().toISOString();
+  return store;
+}
+
+function advanceIsoMonth(isoDate: string): string {
+  const parts = isoDate.trim().split("-");
+  const yyyy = Number(parts[0] ?? 2026);
+  const mm = Number(parts[1] ?? 11);
+  const dd = Number(parts[2] ?? 15);
+  const d = new Date(yyyy, mm, dd, 12, 0, 0);
+  const nextY = String(d.getFullYear()).padStart(4, "0");
+  const nextM = String(d.getMonth() + 1).padStart(2, "0");
+  const nextD = String(d.getDate()).padStart(2, "0");
+  return `${nextY}-${nextM}-${nextD}`;
+}
+
+export function receiveNextInstallment(
+  id: string,
+  targetYearMonth = "2026-11"
+): {
+  store: DashboardPayload;
+  updatedReceivable: ReceivablePlan | null;
+  createdTransaction: Transaction | null;
+} {
+  const store = getOrInitDemoStore();
+  const current = store.recebiveis ?? [];
+  const item = current.find((r) => r.id === id);
+
+  if (!item || item.parcelas_recebidas >= item.total_parcelas) {
+    return {
+      store,
+      updatedReceivable: item ?? null,
+      createdTransaction: null,
+    };
+  }
+
+  const nextParcelaNumber = item.parcelas_recebidas + 1;
+  const isCompleted = nextParcelaNumber >= item.total_parcelas;
+  const installmentAmount = roundCurrency(
+    item.valor_total / Math.max(1, item.total_parcelas)
+  );
+
+  const updated: ReceivablePlan = {
+    ...item,
+    parcelas_recebidas: nextParcelaNumber,
+    status: isCompleted ? "CONCLUIDO" : "EM_ANDAMENTO",
+    proximo_vencimento: isCompleted
+      ? item.proximo_vencimento
+      : advanceIsoMonth(item.proximo_vencimento),
+  };
+
+  store.recebiveis = current.map((r) => (r.id === id ? updated : r));
+
+  const txDate = `${targetYearMonth.slice(0, 7)}-15`;
+  const createdTx: Transaction = {
+    id: `tx_rec_${id}_${nextParcelaNumber}_${Date.now()}`,
+    data_competencia: txDate,
+    data_caixa: txDate,
+    tipo_fluxo: "RENDA",
+    categoria: "Salário / Renda",
+    descricao: `Recebimento: ${item.descricao} (${nextParcelaNumber}/${item.total_parcelas}) — ${item.pagador_origem}`,
+    valor: installmentAmount,
+    conta: item.conta_destino,
+    pago_por: item.recebedor === "Maria Luiza" ? "Maria Luiza" : "Giovanni",
+    escopo: "CONJUNTO",
+    parcela_atual: nextParcelaNumber,
+    total_parcelas: item.total_parcelas,
+    id_plano_parcelas: `rec_plan_${id}`,
+  };
+
+  store.transacoes = [createdTx, ...store.transacoes];
+  store.timestamp = new Date().toISOString();
+
+  return {
+    store,
+    updatedReceivable: updated,
+    createdTransaction: createdTx,
+  };
+}
+
+export function deleteDemoReceivable(id: string): DashboardPayload {
+  const store = getOrInitDemoStore();
+  store.recebiveis = (store.recebiveis ?? []).filter((r) => r.id !== id);
+  store.timestamp = new Date().toISOString();
+  return store;
+}
+
+export function payNextPayableInstallment(
+  planIdOrTxId: string,
+  currentYearMonth = "2026-11"
+): {
+  store: DashboardPayload;
+  paidTransaction: Transaction | null;
+} {
+  const store = getOrInitDemoStore();
+  const ymPrefix = currentYearMonth.trim().slice(0, 7);
+
+  // Find the earliest future installment for this plan or transaction id
+  const candidates = store.transacoes
+    .filter(
+      (t) =>
+        (t.id_plano_parcelas === planIdOrTxId || t.id === planIdOrTxId) &&
+        t.data_caixa.slice(0, 7) > ymPrefix
+    )
+    .sort((a, b) => a.parcela_atual - b.parcela_atual);
+
+  const nextToPay = candidates[0];
+  if (!nextToPay) {
+    return { store, paidTransaction: null };
+  }
+
+  const paidDate = `${ymPrefix}-15`;
+  const updatedTx: Transaction = {
+    ...nextToPay,
+    data_caixa: paidDate,
+    descricao: nextToPay.descricao.includes("[Antecipada]")
+      ? nextToPay.descricao
+      : `${nextToPay.descricao} [Antecipada]`,
+  };
+
+  store.transacoes = store.transacoes.map((t) =>
+    t.id === nextToPay.id ? updatedTx : t
+  );
+  store.timestamp = new Date().toISOString();
+
+  return { store, paidTransaction: updatedTx };
 }

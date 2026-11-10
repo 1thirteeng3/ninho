@@ -241,7 +241,7 @@ export function calculateIncomeAllocation(
       ? [
           {
             id: "macro_provisoes",
-            label: "Provisões Anuais (Sinking Funds)",
+            label: "Reserva p/ Despesas Anuais (IPVA/Seguro)",
             valor: provisoesTotal,
             percentualRenda: percentualProvisoes,
             tipo: "PROVISAO_ANUAL" as const,
@@ -252,7 +252,7 @@ export function calculateIncomeAllocation(
       ? [
           {
             id: "macro_saldo_livre",
-            label: "Saldo Livre Não Alocado",
+            label: "Sobra Livre na Conta",
             valor: saldoResidual,
             percentualRenda: safePercentage(saldoResidual, rendaTotal),
             tipo: "SALDO_LIVRE" as const,

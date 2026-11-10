@@ -4,6 +4,7 @@ import {
   getRealisticDemoDataset,
   getWorstCaseDataset,
   resetDemoMemoryStore,
+  syncGoalsFromAssets,
 } from "../demo-datasets";
 import {
   calculateCoupleSettlement,
@@ -24,6 +25,8 @@ describe("demo-datasets & /api/sheets BFF Route", () => {
     const demo = getRealisticDemoDataset("2026-11");
     const parsed = DashboardPayloadSchema.safeParse(demo);
     expect(parsed.success).toBe(true);
+    expect(demo.ativos?.length).toBeGreaterThanOrEqual(6);
+    expect(demo.recebiveis?.length).toBeGreaterThanOrEqual(3);
 
     // Renda de 2026-11 = R$ 8.000,00 (Giovanni 4.500 + Maria Luiza 3.500)
     const allocComp = calculateIncomeAllocation(
@@ -140,6 +143,20 @@ describe("demo-datasets & /api/sheets BFF Route", () => {
     const afterData = await afterGetRes.json();
     expect(afterData.transacoes.length).toBe(initialCount + 3);
 
+    // Testar DELETE_TRANSACTION de 1 parcela
+    const deleteTxRes = await POST(
+      new NextRequest("http://localhost:3000/api/sheets", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "DELETE_TRANSACTION",
+          id: postJson.ids[0],
+        }),
+      })
+    );
+    expect(deleteTxRes.status).toBe(200);
+    const afterDeleteTxJson = await deleteTxRes.json();
+    expect(afterDeleteTxJson.transacoesCount).toBe(initialCount + 2);
+
     // Testar RESET_DEMO
     const resetRes = await POST(
       new NextRequest("http://localhost:3000/api/sheets", {
@@ -154,5 +171,124 @@ describe("demo-datasets & /api/sheets BFF Route", () => {
     );
     const afterResetData = await afterResetRes.json();
     expect(afterResetData.transacoes.length).toBe(initialCount);
+  });
+
+  it("API /api/sheets suporta UPSERT_ASSET, DELETE_ASSET, UPSERT_RECEIVABLE e RECEIVE_INSTALLMENT sincronizando metas", async () => {
+    // 1. Adicionar um novo ativo de investimento vinculado à meta Viagem
+    const upsertAssetRes = await POST(
+      new NextRequest("http://localhost:3000/api/sheets", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "UPSERT_ASSET",
+          asset: {
+            id: "asset_test_viagem_extra",
+            nome: "LCI Itaú Viagem Europa",
+            tipo_ativo: "LCI / LCA",
+            rendimento: "96% do CDI Isento",
+            liquidez: "90 dias",
+            instituicao: "Itaú",
+            meta_vinculada: "Viagem",
+            titular: "Casal",
+            valor_aportado: 2000,
+            saldo_atual: 2250,
+          },
+        }),
+      })
+    );
+    expect(upsertAssetRes.status).toBe(200);
+    const assetJson = await upsertAssetRes.json();
+    const viagemGoal = assetJson.investimentos.find(
+      (g: { nome: string }) => g.nome === "Viagem"
+    );
+    // Viagem tinha 6100 aportado / 6500 saldo + 2000 / 2250 = 8100 / 8750
+    expect(viagemGoal.total_aportado).toBe(8100);
+    expect(viagemGoal.saldo_bruto_atual).toBe(8750);
+
+    // 2. Remover o ativo criado e verificar retorno ao saldo anterior
+    const deleteAssetRes = await POST(
+      new NextRequest("http://localhost:3000/api/sheets", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "DELETE_ASSET",
+          id: "asset_test_viagem_extra",
+        }),
+      })
+    );
+    expect(deleteAssetRes.status).toBe(200);
+    const afterDeleteAssetJson = await deleteAssetRes.json();
+    const restoredViagemGoal = afterDeleteAssetJson.investimentos.find(
+      (g: { nome: string }) => g.nome === "Viagem"
+    );
+    expect(restoredViagemGoal.total_aportado).toBe(6100);
+    expect(restoredViagemGoal.saldo_bruto_atual).toBe(6500);
+
+    // 3. Cadastrar um novo recebível parcelado e receber 1 parcela
+    const upsertRecRes = await POST(
+      new NextRequest("http://localhost:3000/api/sheets", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "UPSERT_RECEIVABLE",
+          receivable: {
+            id: "rec_test_macbook",
+            descricao: "Venda MacBook Air",
+            pagador_origem: "Primo Lucas",
+            recebedor: "Giovanni",
+            valor_total: 3000,
+            total_parcelas: 3,
+            parcelas_recebidas: 0,
+            proximo_vencimento: "2026-11-20",
+            conta_destino: "Nubank Conjunta",
+            status: "EM_ANDAMENTO",
+          },
+        }),
+      })
+    );
+    expect(upsertRecRes.status).toBe(200);
+
+    const receiveRes = await POST(
+      new NextRequest("http://localhost:3000/api/sheets", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "RECEIVE_INSTALLMENT",
+          id: "rec_test_macbook",
+          yearMonth: "2026-11",
+        }),
+      })
+    );
+    expect(receiveRes.status).toBe(200);
+    const receiveJson = await receiveRes.json();
+    expect(receiveJson.updatedReceivable.parcelas_recebidas).toBe(1);
+    expect(receiveJson.createdTransaction.valor).toBe(1000);
+    expect(receiveJson.createdTransaction.tipo_fluxo).toBe("RENDA");
+
+    // 4. Testar syncGoalsFromAssets diretamente
+    const synced = syncGoalsFromAssets(
+      [
+        {
+          id_meta: "m1",
+          nome: "Casa",
+          tipo: "PATRIMONIO",
+          valor_alvo: 80000,
+          total_aportado: 0,
+          saldo_bruto_atual: 0,
+        },
+      ],
+      [
+        {
+          id: "a1",
+          nome: "CDB 112%",
+          tipo_ativo: "CDB",
+          rendimento: "112% do CDI",
+          liquidez: "Diária",
+          instituicao: "Itaú",
+          meta_vinculada: "Casa",
+          titular: "Casal",
+          valor_aportado: 10000,
+          saldo_atual: 11200,
+        },
+      ]
+    );
+    expect(synced[0]?.total_aportado).toBe(10000);
+    expect(synced[0]?.saldo_bruto_atual).toBe(11200);
   });
 });

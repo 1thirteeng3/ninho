@@ -8,10 +8,13 @@ import {
   HeaderControls,
   type DataSourceMode,
 } from "@/components/dashboard/HeaderControls";
+import { InstallmentsManagerModule } from "@/components/dashboard/InstallmentsManagerModule";
+import { InvestmentAssetsManager } from "@/components/dashboard/InvestmentAssetsManager";
 import { InvestmentGoalsChart } from "@/components/dashboard/InvestmentGoalsChart";
 import { KpiSummaryRow } from "@/components/dashboard/KpiSummaryRow";
 import { MacroAllocationChart } from "@/components/dashboard/MacroAllocationChart";
 import { QuickEntryBar } from "@/components/dashboard/QuickEntryBar";
+import { TransactionLogsModule } from "@/components/dashboard/TransactionLogsModule";
 import {
   calculateCoupleSettlement,
   calculateIncomeAllocation,
@@ -31,7 +34,6 @@ export default function NinhoDashboardPage() {
     useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
-  // Instant initial state with realistic dataset for 0ms first render
   const [payload, setPayload] = useState<DashboardPayload>(() =>
     getRealisticDemoDataset("2026-11")
   );
@@ -45,7 +47,7 @@ export default function NinhoDashboardPage() {
         });
 
         if (!res.ok) {
-          throw new Error("Erro ao consultar API de dados.");
+          throw new Error("Erro ao consultar dados.");
         }
 
         const data = (await res.json()) as DashboardPayload & {
@@ -59,6 +61,8 @@ export default function NinhoDashboardPage() {
             investimentos: data.investimentos ?? [],
             provisoes: data.provisoes ?? [],
             config: data.config ?? [],
+            ativos: data.ativos ?? [],
+            recebiveis: data.recebiveis ?? [],
             timestamp: data.timestamp ?? new Date().toISOString(),
             mode: data.mode,
           });
@@ -69,7 +73,6 @@ export default function NinhoDashboardPage() {
           toast.info(data.warning);
         }
       } catch {
-        // Fallback local se houver erro de rede
         const fallback =
           targetMode === "WORST_CASE"
             ? getWorstCaseDataset(yearMonth)
@@ -87,14 +90,14 @@ export default function NinhoDashboardPage() {
   function handleDataSourceModeChange(nextMode: DataSourceMode) {
     setDataSourceMode(nextMode);
     if (nextMode === "WORST_CASE") {
-      toast.warning("Modo Stress-Test (Pior Caso) ativado", {
+      toast.warning("Modo de Teste Extremo ativado", {
         description:
-          "Exibindo strings sem espaços, dízimas 3x/12x/24x, cotas excedidas e setembro com Renda Zero.",
+          "Exibindo compras longas, parcelamentos longos, mesadas estouradas e mês sem renda.",
       });
     } else if (nextMode === "DEMO") {
-      toast.info("Modo Demonstração Realista ativado", {
+      toast.info("Dados de Exemplo ativados", {
         description:
-          "Exibindo dados de Giovanni & Maria Luiza com encontro de contas e metas bifurcadas.",
+          "Exibindo o planejamento de Giovanni & Maria Luiza com ativos, parcelas e logs.",
       });
     }
   }
@@ -113,7 +116,7 @@ export default function NinhoDashboardPage() {
         }),
       });
       if (!response.ok) {
-        throw new Error("Falha ao sincronizar fila do Google Tasks.");
+        throw new Error("Não foi possível sincronizar tarefas.");
       }
       const data = (await response.json()) as {
         syncedTasks?: number;
@@ -126,16 +129,13 @@ export default function NinhoDashboardPage() {
     });
 
     toast.promise(syncPromise, {
-      loading: "Consultando fila de lançamentos no Google Tasks...",
+      loading: "Verificando novos lançamentos...",
       success: (data) =>
         data.syncedTasks && data.syncedTasks > 0
-          ? `✅ ${data.syncedTasks} tarefa(s) importada(s) do Google Tasks!`
-          : data.message ??
-            "Fila do Google Tasks verificada e dashboard sincronizado.",
+          ? `✅ ${data.syncedTasks} lançamento(s) importado(s)!`
+          : data.message ?? "Tudo atualizado!",
       error: (err) =>
-        err instanceof Error
-          ? err.message
-          : "Erro ao sincronizar com Google Tasks.",
+        err instanceof Error ? err.message : "Erro ao sincronizar.",
     });
   }
 
@@ -148,14 +148,13 @@ export default function NinhoDashboardPage() {
       });
       if (res.ok) {
         await fetchDashboardData(dataSourceMode);
-        toast.success("Dataset restaurado para o estado original.");
+        toast.success("Dados restaurados para o estado inicial.");
       }
     } catch {
-      toast.error("Não foi possível restaurar o dataset.");
+      toast.error("Não foi possível restaurar os dados.");
     }
   }
 
-  // Pure domain computations (O(N), 0ms latency)
   const allocation = useMemo(
     () =>
       calculateIncomeAllocation(payload.transacoes, yearMonth, viewMode),
@@ -194,14 +193,14 @@ export default function NinhoDashboardPage() {
       />
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        {/* Omnibox Quick Entry Bar (Cmd+K) */}
+        {/* Lançamento Rápido */}
         <QuickEntryBar
           yearMonth={yearMonth}
           dataSourceMode={dataSourceMode}
           onTransactionCreated={() => fetchDashboardData(dataSourceMode)}
         />
 
-        {/* 4 Main KPI Cards */}
+        {/* 4 Indicadores Principais do Mês */}
         <KpiSummaryRow
           allocation={allocation}
           transactions={payload.transacoes}
@@ -209,16 +208,42 @@ export default function NinhoDashboardPage() {
           viewMode={viewMode}
         />
 
-        {/* Module 1 & Module 2: Macro Allocation & Investment Goals Donuts */}
+        {/* Gráficos Principais: Para Onde Foi a Renda & Nossas Metas */}
         <section
-          aria-label="Gráficos de Alocação e Metas"
+          aria-label="Gráficos do Mês e Metas"
           className="animate-enter delay-2 grid grid-cols-1 gap-6 lg:grid-cols-2"
         >
           <MacroAllocationChart allocation={allocation} />
           <InvestmentGoalsChart goals={payload.investimentos} />
         </section>
 
-        {/* Module 3: Dynamic Allocation Table & Auditable Ledger */}
+        {/* Gestor Interativo de Ativos de Investimento (Tipo de Ativo, Quanto Rende, Modificar/Adicionar) */}
+        <InvestmentAssetsManager
+          assets={payload.ativos ?? []}
+          goals={payload.investimentos}
+          dataSourceMode={dataSourceMode}
+          onDataChanged={() => fetchDashboardData(dataSourceMode)}
+        />
+
+        {/* Central de Parcelas a Pagar e Valores a Receber */}
+        <InstallmentsManagerModule
+          transactions={payload.transacoes}
+          receivables={payload.recebiveis ?? []}
+          yearMonth={yearMonth}
+          dataSourceMode={dataSourceMode}
+          onDataChanged={() => fetchDashboardData(dataSourceMode)}
+        />
+
+        {/* Visualização Completa de Logs (Extrato do que Entrou e Saiu) */}
+        <TransactionLogsModule
+          transactions={payload.transacoes}
+          yearMonth={yearMonth}
+          viewMode={viewMode}
+          dataSourceMode={dataSourceMode}
+          onDataChanged={() => fetchDashboardData(dataSourceMode)}
+        />
+
+        {/* Resumo por Categoria do Mês */}
         <DynamicAllocationTable
           allocation={allocation}
           goals={payload.investimentos}
@@ -227,7 +252,7 @@ export default function NinhoDashboardPage() {
           viewMode={viewMode}
         />
 
-        {/* Module 4: Couple Governance (Settlement L_u,m, Future Invoices & Sinking Funds) */}
+        {/* Mesada Livre Individual & Caixinha de Despesas Anuais */}
         <CoupleGovernanceModule
           settlement={settlement}
           futureInvoices={futureInvoices}
@@ -235,15 +260,14 @@ export default function NinhoDashboardPage() {
         />
       </main>
 
-      <footer className="mt-12 border-t border-white/[0.06] bg-[#090A0F]/80 py-5 text-xs text-slate-500">
+      <footer className="mt-12 border-t border-rose-500/15 bg-[#120910]/90 py-5 text-xs text-rose-200/60">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 sm:flex-row sm:px-6 lg:px-8">
           <p>
-            <strong className="text-slate-300">Ninho</strong> · Arquitetura de
-            Governança e Inteligência Financeira Conjugal (Giovanni & Maria
-            Luiza)
+            <strong className="text-rose-100">Ninho</strong> · Planejamento
+            Financeiro do Casal (Giovanni & Maria Luiza)
           </p>
           <p className="tabular-nums">
-            Neutralidade Descritiva · Precisão ao Centavo · Atualizado em{" "}
+            Simples, acolhedor e atualizado às{" "}
             {new Date(payload.timestamp).toLocaleTimeString("pt-BR", {
               hour: "2-digit",
               minute: "2-digit",

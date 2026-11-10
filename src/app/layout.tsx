@@ -16,9 +16,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ninho — Finanças Giovanni & Maria Luiza",
+  title: "Ninho — Finanças do Casal (Giovanni & Maria Luiza)",
   description:
-    "Sistema de Governança e Inteligência Financeira Conjugal — Caixa Único, Cota Individual, Alocação Descritiva e Desdobramento Temporal de Faturas.",
+    "Organização financeira simples e acolhedora para o casal — entradas, saídas, investimentos, metas e parcelas.",
   applicationName: "Ninho",
   appleWebApp: {
     capable: true,
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#090A0F",
+  themeColor: "#120910",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -51,7 +51,7 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${inter.variable} ${jetbrainsMono.variable} dark`}
     >
-      <body className="font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
+      <body className="font-sans antialiased selection:bg-rose-500/30 selection:text-rose-100">
         {children}
         <Toaster
           position="bottom-right"

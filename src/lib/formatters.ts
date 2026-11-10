@@ -74,19 +74,19 @@ export function getMonthNameByNumber(monthStr: string): string {
 }
 
 export const CATEGORY_COLORS: Record<Category, string> = {
-  "Habitação & Fixos": "#6366F1", // Indigo
-  Carro: "#06B6D4", // Cyan
-  Saúde: "#14B8A6", // Teal
-  "Estudos (Custeio)": "#8B5CF6", // Violet
-  Lazer: "#EC4899", // Pink
-  "Cota Individual": "#38BDF8", // Sky
-  "Fundo Anual (Carro/Impostos)": "#F59E0B", // Amber
-  Casa: "#10B981", // Emerald
-  "Estudos (Fundo Futuro)": "#A855F7", // Purple
-  Viagem: "#22D3EE", // Light Cyan
-  "Reserva & Patrimônio": "#34D399", // Soft Emerald
-  "Salário / Renda": "#10B981",
-  "Ajuste de Caixa": "#94A3B8",
+  "Habitação & Fixos": "#FB7185", // Rose 400
+  Carro: "#F472B6", // Pink 400
+  Saúde: "#E879F9", // Fuchsia 400
+  "Estudos (Custeio)": "#C084FC", // Purple 400
+  Lazer: "#F43F5E", // Rose 500
+  "Cota Individual": "#FDA4AF", // Rose 300
+  "Fundo Anual (Carro/Impostos)": "#FBBF24", // Amber 400
+  Casa: "#EC4899", // Pink 500
+  "Estudos (Fundo Futuro)": "#D946EF", // Fuchsia 500
+  Viagem: "#FB7185", // Coral Rose
+  "Reserva & Patrimônio": "#34D399", // Emerald 400
+  "Salário / Renda": "#34D399",
+  "Ajuste de Caixa": "#CBD5E1",
 };
 
 export function getFlowBadgeStyle(flow: FlowType): {
@@ -96,38 +96,38 @@ export function getFlowBadgeStyle(flow: FlowType): {
   switch (flow) {
     case "RENDA":
       return {
-        label: "RENDA",
+        label: "↑ Entrada",
         className:
           "border-emerald-500/30 bg-emerald-500/15 text-emerald-300",
       };
     case "INVESTIMENTO":
       return {
-        label: "INVESTIMENTO",
+        label: "✦ Investimento",
         className:
-          "border-emerald-500/30 bg-emerald-500/15 text-emerald-300",
+          "border-fuchsia-500/30 bg-fuchsia-500/15 text-fuchsia-200",
       };
     case "PROVISAO_ANUAL":
       return {
-        label: "PROVISÃO ANUAL",
-        className: "border-amber-500/30 bg-amber-500/15 text-amber-300",
+        label: "✦ Reserva Anual",
+        className: "border-amber-500/30 bg-amber-500/15 text-amber-200",
       };
     case "CUSTO":
       return {
-        label: "CUSTO",
-        className: "border-indigo-500/30 bg-indigo-500/15 text-indigo-200",
+        label: "↓ Saída",
+        className: "border-rose-500/30 bg-rose-500/15 text-rose-200",
       };
     case "AJUSTE":
       return {
-        label: "AJUSTE",
-        className: "border-slate-500/30 bg-slate-500/15 text-slate-300",
+        label: "Ajuste",
+        className: "border-rose-300/25 bg-rose-300/10 text-rose-200",
       };
   }
 }
 
 export function getMemberBadgeStyle(member: Member): string {
   return member === "Giovanni"
-    ? "border-sky-500/30 bg-sky-500/15 text-sky-200"
-    : "border-pink-500/30 bg-pink-500/15 text-pink-200";
+    ? "border-rose-400/30 bg-rose-500/15 text-rose-200"
+    : "border-pink-400/30 bg-pink-500/15 text-pink-200";
 }
 
 export function getScopeBadgeLabel(scope: Scope): {
@@ -137,18 +137,18 @@ export function getScopeBadgeLabel(scope: Scope): {
   switch (scope) {
     case "CONJUNTO":
       return {
-        label: "CONJUNTO",
-        className: "border-white/15 bg-white/[0.05] text-slate-300",
+        label: "Do Casal",
+        className: "border-rose-300/20 bg-rose-500/10 text-rose-100",
       };
     case "INDIVIDUAL_GIOVANNI":
       return {
-        label: "COTA GIOVANNI",
-        className: "border-sky-500/30 bg-sky-500/15 text-sky-200",
+        label: "Pessoal · Giovanni",
+        className: "border-rose-400/30 bg-rose-500/15 text-rose-200",
       };
     case "INDIVIDUAL_MARIA_LUIZA":
       return {
-        label: "COTA MARIA LUIZA",
-        className: "border-pink-500/30 bg-pink-500/15 text-pink-200",
+        label: "Pessoal · Maria Luiza",
+        className: "border-pink-400/30 bg-pink-500/15 text-pink-200",
       };
   }
 }

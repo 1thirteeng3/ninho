@@ -9,7 +9,6 @@ import {
   Layers,
   Sparkles,
   User,
-  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { roundCurrency } from "@/lib/domain/financial-engine";
@@ -29,7 +28,7 @@ const QUICK_EXAMPLES: readonly { label: string; text: string }[] = [
     text: "180 gasolina @nubank 2x",
   },
   {
-    label: "👗 Vestido Cota Malu",
+    label: "👗 Vestido (Pessoal Malu)",
     text: "250 vestido #individual por:malu",
   },
   {
@@ -37,12 +36,12 @@ const QUICK_EXAMPLES: readonly { label: string; text: string }[] = [
     text: "160 jantar pizzaria #lazer @itau",
   },
   {
-    label: "🏠 Aporte Casa",
+    label: "🏠 Guardar p/ Casa",
     text: "800 aporte meta casa #casa @itau",
   },
   {
-    label: "🛡️ Provisão IPVA",
-    text: "240 ipva 1/12 #provisao @itau",
+    label: "🛡️ Reserva IPVA",
+    text: "240 ipva mensal #provisao @itau",
   },
 ];
 
@@ -62,7 +61,6 @@ export function QuickEntryBar({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Global Cmd+K / Ctrl+K shortcut — instant focus without open animation (emil-design-eng)
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -75,13 +73,11 @@ export function QuickEntryBar({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Reference date aligned with selected month so demo entries appear in the active view
   const referenceDate = useMemo(() => {
     const cleanYm = yearMonth.trim().slice(0, 7);
     return `${cleanYm}-12`;
   }, [yearMonth]);
 
-  // 0ms deterministic lexical parser
   const parsed = useMemo(
     () => parseQuickEntry(rawText, defaultMember, referenceDate),
     [rawText, defaultMember, referenceDate]
@@ -99,7 +95,7 @@ export function QuickEntryBar({
     if (!parsed.isValid || isSubmitting) {
       if (!parsed.isValid) {
         toast.error("Informe um valor numérico para registrar o lançamento.", {
-          description: 'Exemplo: "180 gasolina @nubank 2x"',
+          description: 'Exemplo: "150 mercado @itau 2x"',
         });
       }
       return;
@@ -129,7 +125,7 @@ export function QuickEntryBar({
           message?: string;
         };
         throw new Error(
-          errData.message ?? "Não foi possível gravar o lançamento."
+          errData.message ?? "Não foi possível salvar o lançamento."
         );
       }
 
@@ -137,9 +133,9 @@ export function QuickEntryBar({
         parsed.total_parcelas > 1 ? ` (${parsed.total_parcelas}x)` : "";
 
       toast.success(
-        `✅ Lançado: ${parsed.descricao} | ${formatBRL(parsed.valor)} em ${parsed.categoria} (${parsed.conta})${parcelaInfo}`,
+        `✅ Registrado: ${parsed.descricao} | ${formatBRL(parsed.valor)} em ${parsed.categoria} (${parsed.conta})${parcelaInfo}`,
         {
-          description: `Titular: ${parsed.pago_por} • Escopo: ${parsed.escopo} • Competência: ${parsed.data_competencia}`,
+          description: `Pago por: ${parsed.pago_por} • Data: ${parsed.data_competencia}`,
         }
       );
 
@@ -161,37 +157,43 @@ export function QuickEntryBar({
 
   return (
     <section
-      aria-label="Barra de Entrada Rápida Omnibox"
-      className="animate-enter rounded-2xl border border-white/[0.08] bg-[#11131A]/95 p-4 shadow-xl"
+      aria-label="Lançamento Rápido"
+      className="animate-enter rounded-2xl border border-rose-400/30 bg-gradient-to-br from-[#1B0E18] via-[#21111E] to-[#1B0E18] p-4 shadow-xl shadow-rose-950/30"
     >
       <div className="flex flex-col gap-3">
         {/* Top Row: Title + Member Switcher */}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
-              <Zap className="h-3.5 w-3.5" />
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-rose-500/20 text-rose-300">
+              <Sparkles className="h-3.5 w-3.5" />
             </span>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-              Quick Entry Omnibox · Parser Léxico 0ms
-            </h2>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-mono text-slate-400">
+            <div>
+              <span className="text-xs font-semibold text-rose-100">
+                Lançamento Rápido
+              </span>
+              <span className="hidden md:inline text-xs text-rose-200/70 ml-2">
+                — Digite como você fala (ex: 150 mercado @itau 2x) ou pressione
+                Ctrl+K
+              </span>
+            </div>
+            <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded-md border border-rose-400/20 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-mono text-rose-200">
               <Command className="h-2.5 w-2.5" />K
             </kbd>
           </div>
 
           {/* Quick Member Default Selector */}
           <div className="flex items-center gap-1.5 text-xs">
-            <span className="text-slate-400 hidden sm:inline">
-              Lançando como:
+            <span className="text-rose-200/70 hidden sm:inline">
+              Quem está lançando:
             </span>
-            <div className="inline-flex rounded-lg border border-white/[0.08] bg-[#090A0F] p-0.5">
+            <div className="inline-flex rounded-xl border border-rose-500/25 bg-[#120910] p-0.5">
               <button
                 type="button"
                 onClick={() => setDefaultMember("Giovanni")}
-                className={`pressable rounded-md px-2.5 py-1 text-xs font-medium ${
+                className={`pressable rounded-lg px-2.5 py-1 text-xs font-medium ${
                   defaultMember === "Giovanni"
-                    ? "bg-sky-500/20 text-sky-200 border border-sky-400/30"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-rose-500/25 text-rose-100 border border-rose-400/40"
+                    : "text-rose-200/60 hover:text-white"
                 }`}
               >
                 Giovanni
@@ -199,10 +201,10 @@ export function QuickEntryBar({
               <button
                 type="button"
                 onClick={() => setDefaultMember("Maria Luiza")}
-                className={`pressable rounded-md px-2.5 py-1 text-xs font-medium ${
+                className={`pressable rounded-lg px-2.5 py-1 text-xs font-medium ${
                   defaultMember === "Maria Luiza"
-                    ? "bg-pink-500/20 text-pink-200 border border-pink-400/30"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-pink-500/25 text-pink-100 border border-pink-400/40"
+                    : "text-rose-200/60 hover:text-white"
                 }`}
               >
                 Maria Luiza
@@ -211,32 +213,32 @@ export function QuickEntryBar({
           </div>
         </div>
 
-        {/* Input Form (text-base on mobile to prevent iOS Safari auto-zoom) */}
+        {/* Input Form */}
         <form onSubmit={handleSubmit} className="relative flex items-center">
           <input
             ref={inputRef}
             type="text"
             value={rawText}
             onChange={(e) => setRawText(e.target.value)}
-            placeholder='Digite ex: "180 gasolina @nubank 2x" ou "250 vestido #individual por:malu"...'
-            aria-label="Entrada rápida de lançamento financeiro"
-            className="w-full rounded-xl border border-white/10 bg-[#090A0F] py-3 pl-4 pr-28 text-base sm:text-sm text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            placeholder='Digite como você fala (ex: "150 mercado @itau 2x" ou "250 vestido #individual por:malu")...'
+            aria-label="Lançamento rápido financeiro"
+            className="w-full rounded-xl border border-rose-400/25 bg-[#120910] py-3 pl-4 pr-32 text-base sm:text-sm text-white placeholder:text-rose-200/40 focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500/25"
           />
           <button
             type="submit"
             disabled={!parsed.isValid || isSubmitting}
-            className="pressable absolute right-2 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-slate-950 shadow-sm hover:bg-emerald-400 disabled:bg-white/10 disabled:text-slate-500"
+            className="pressable absolute right-2 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-rose-500 to-pink-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-rose-500/20 hover:from-rose-400 hover:to-pink-400 disabled:from-white/10 disabled:to-white/10 disabled:text-rose-200/40 disabled:shadow-none"
           >
-            <span>{isSubmitting ? "Salvando..." : "Lançar"}</span>
+            <span>{isSubmitting ? "Salvando..." : "Adicionar"}</span>
             <CornerDownLeft className="h-3.5 w-3.5" />
           </button>
         </form>
 
-        {/* Real-time 0ms Preview Chips (when user types) OR Quick Clickable Examples */}
+        {/* Friendly Preview Chips OR Quick Clickable Examples */}
         {rawText.trim().length > 0 ? (
-          <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-white/[0.06] bg-[#090A0F]/70 px-3 py-2 text-xs">
-            <span className="text-[11px] font-medium text-slate-400 mr-1">
-              Preview 0ms:
+          <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-rose-400/20 bg-[#120910]/80 px-3 py-2 text-xs">
+            <span className="text-[11px] font-medium text-rose-200/75 mr-1">
+              Como será salvo:
             </span>
 
             {/* Fluxo */}
@@ -251,29 +253,29 @@ export function QuickEntryBar({
               className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums ${
                 parsed.isValid
                   ? parsed.valor < 0
-                    ? "border-slate-500/30 bg-slate-500/15 text-slate-100"
+                    ? "border-rose-400/30 bg-rose-500/15 text-rose-100"
                     : "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
                   : "border-amber-500/30 bg-amber-500/15 text-amber-300"
               }`}
             >
-              {parsed.isValid ? formatBRL(parsed.valor) : "Sem valor numérico"}
+              {parsed.isValid ? formatBRL(parsed.valor) : "Digite um valor"}
             </span>
 
             {/* Categoria */}
-            <span className="inline-flex items-center gap-1 rounded-md border border-indigo-500/30 bg-indigo-500/15 px-2 py-0.5 text-[11px] font-medium text-indigo-200">
-              <Hash className="h-3 w-3 text-indigo-400" />
+            <span className="inline-flex items-center gap-1 rounded-md border border-pink-400/30 bg-pink-500/15 px-2 py-0.5 text-[11px] font-medium text-pink-100">
+              <Hash className="h-3 w-3 text-pink-300" />
               {parsed.categoria}
             </span>
 
             {/* Conta */}
-            <span className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] font-medium text-slate-200">
-              <CreditCard className="h-3 w-3 text-cyan-400" />
+            <span className="inline-flex items-center gap-1 rounded-md border border-rose-400/20 bg-rose-500/10 px-2 py-0.5 text-[11px] font-medium text-rose-100">
+              <CreditCard className="h-3 w-3 text-rose-300" />
               {parsed.conta}
             </span>
 
             {/* Parcelas */}
-            <span className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] font-medium text-slate-200 tabular-nums">
-              <Layers className="h-3 w-3 text-amber-400" />
+            <span className="inline-flex items-center gap-1 rounded-md border border-rose-400/20 bg-rose-500/10 px-2 py-0.5 text-[11px] font-medium text-rose-100 tabular-nums">
+              <Layers className="h-3 w-3 text-amber-300" />
               {parsed.total_parcelas > 1
                 ? `${parsed.total_parcelas}x de ${formatBRL(installmentUnitValue)}`
                 : "À vista (1x)"}
@@ -298,9 +300,9 @@ export function QuickEntryBar({
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
-            <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 mr-1">
-              <Sparkles className="h-3 w-3 text-emerald-400" />
-              Testar em 1 clique:
+            <span className="inline-flex items-center gap-1 text-[11px] text-rose-200/70 mr-1">
+              <Sparkles className="h-3 w-3 text-rose-400" />
+              Exemplos rápidos:
             </span>
             {QUICK_EXAMPLES.map((ex) => (
               <button
@@ -310,7 +312,7 @@ export function QuickEntryBar({
                   setRawText(ex.text);
                   inputRef.current?.focus();
                 }}
-                className="pressable rounded-lg border border-white/[0.07] bg-white/[0.03] px-2.5 py-1 text-[11px] text-slate-300 hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+                className="pressable rounded-lg border border-rose-400/15 bg-rose-500/[0.06] px-2.5 py-1 text-[11px] text-rose-100/90 hover:border-rose-400/40 hover:bg-rose-500/15 hover:text-white"
               >
                 {ex.label}
               </button>

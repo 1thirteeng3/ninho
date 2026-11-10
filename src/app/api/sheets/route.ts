@@ -4,15 +4,24 @@ import { splitInstallmentsWithBillingCycle } from "@/lib/domain/financial-engine
 import {
   CategorySchema,
   FlowTypeSchema,
+  InvestmentAssetSchema,
   MemberSchema,
+  ReceivablePlanSchema,
   ScopeSchema,
 } from "@/lib/domain/types";
 import {
+  deleteDemoAsset,
+  deleteDemoReceivable,
+  deleteDemoTransaction,
   getOrInitDemoStore,
   getWorstCaseDataset,
   getWorstCaseExtraTransactions,
+  payNextPayableInstallment,
   prependWorstCaseExtraTransactions,
+  receiveNextInstallment,
   resetDemoMemoryStore,
+  upsertDemoAsset,
+  upsertDemoReceivable,
 } from "@/lib/mocks/demo-datasets";
 
 const CreateTransactionRequestSchema = z.object({
@@ -33,10 +42,53 @@ const CreateTransactionRequestSchema = z.object({
   mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
 });
 
-const ActionRequestSchema = z.object({
-  action: z.enum(["SYNC_TASKS", "RESET_DEMO"]),
-  mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
-});
+const ActionRequestSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("SYNC_TASKS"),
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("RESET_DEMO"),
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("UPSERT_ASSET"),
+    asset: InvestmentAssetSchema,
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("DELETE_ASSET"),
+    id: z.string().min(1),
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("DELETE_TRANSACTION"),
+    id: z.string().min(1),
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("UPSERT_RECEIVABLE"),
+    receivable: ReceivablePlanSchema,
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("RECEIVE_INSTALLMENT"),
+    id: z.string().min(1),
+    yearMonth: z.string().optional(),
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("DELETE_RECEIVABLE"),
+    id: z.string().min(1),
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("PAY_NEXT_INSTALLMENT"),
+    planIdOrTxId: z.string().min(1),
+    yearMonth: z.string().optional(),
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+]);
 
 function buildSecurityHeaders(): HeadersInit {
   return {
@@ -72,9 +124,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // 1. Modo Stress-Test (Worst Case — break-ui)
   if (requestedMode === "WORST_CASE") {
     const baseWorst = getWorstCaseDataset();
+    const demoStore = getOrInitDemoStore();
     return NextResponse.json(
       {
         ...baseWorst,
+        ativos: demoStore.ativos ?? baseWorst.ativos ?? [],
+        recebiveis: demoStore.recebiveis ?? baseWorst.recebiveis ?? [],
         transacoes: [
           ...getWorstCaseExtraTransactions(),
           ...baseWorst.transacoes,
@@ -145,6 +200,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    const demoFallback = getOrInitDemoStore();
     return NextResponse.json(
       {
         transacoes: Array.isArray(data.transacoes) ? data.transacoes : [],
@@ -153,6 +209,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           : [],
         provisoes: Array.isArray(data.provisoes) ? data.provisoes : [],
         config: Array.isArray(data.config) ? data.config : [],
+        ativos: Array.isArray(data.ativos)
+          ? data.ativos
+          : demoFallback.ativos ?? [],
+        recebiveis: Array.isArray(data.recebiveis)
+          ? data.recebiveis
+          : demoFallback.recebiveis ?? [],
         syncedTasks:
           typeof data.syncedTasks === "number" ? data.syncedTasks : 0,
         timestamp:
@@ -198,24 +260,112 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const gasUrl = getConfiguredGasUrl();
 
-  // 1. Verificar se é uma ação de controle (RESET_DEMO ou SYNC_TASKS)
+  // 1. Verificar se é uma ação de controle / mutação de ativos, logs ou recebíveis
   const actionParse = ActionRequestSchema.safeParse(rawBody);
   if (actionParse.success) {
-    const { action, mode } = actionParse.data;
+    const parsedAction = actionParse.data;
 
-    if (action === "RESET_DEMO") {
+    if (parsedAction.action === "RESET_DEMO") {
       const freshStore = resetDemoMemoryStore();
       return NextResponse.json(
         {
           status: "SUCCESS",
-          message: "Dataset de demonstração restaurado para o estado original.",
+          message: "Dados restaurados para o estado original.",
           transacoesCount: freshStore.transacoes.length,
         },
         { status: 200, headers }
       );
     }
 
-    if (action === "SYNC_TASKS") {
+    if (parsedAction.action === "UPSERT_ASSET") {
+      const updated = upsertDemoAsset(parsedAction.asset);
+      return NextResponse.json(
+        {
+          status: "SUCCESS",
+          ativos: updated.ativos,
+          investimentos: updated.investimentos,
+        },
+        { status: 200, headers }
+      );
+    }
+
+    if (parsedAction.action === "DELETE_ASSET") {
+      const updated = deleteDemoAsset(parsedAction.id);
+      return NextResponse.json(
+        {
+          status: "SUCCESS",
+          ativos: updated.ativos,
+          investimentos: updated.investimentos,
+        },
+        { status: 200, headers }
+      );
+    }
+
+    if (parsedAction.action === "DELETE_TRANSACTION") {
+      const updated = deleteDemoTransaction(parsedAction.id);
+      return NextResponse.json(
+        {
+          status: "SUCCESS",
+          transacoesCount: updated.transacoes.length,
+        },
+        { status: 200, headers }
+      );
+    }
+
+    if (parsedAction.action === "UPSERT_RECEIVABLE") {
+      const updated = upsertDemoReceivable(parsedAction.receivable);
+      return NextResponse.json(
+        {
+          status: "SUCCESS",
+          recebiveis: updated.recebiveis,
+        },
+        { status: 200, headers }
+      );
+    }
+
+    if (parsedAction.action === "RECEIVE_INSTALLMENT") {
+      const result = receiveNextInstallment(
+        parsedAction.id,
+        parsedAction.yearMonth ?? "2026-11"
+      );
+      return NextResponse.json(
+        {
+          status: "SUCCESS",
+          updatedReceivable: result.updatedReceivable,
+          createdTransaction: result.createdTransaction,
+          recebiveis: result.store.recebiveis,
+        },
+        { status: 200, headers }
+      );
+    }
+
+    if (parsedAction.action === "DELETE_RECEIVABLE") {
+      const updated = deleteDemoReceivable(parsedAction.id);
+      return NextResponse.json(
+        {
+          status: "SUCCESS",
+          recebiveis: updated.recebiveis,
+        },
+        { status: 200, headers }
+      );
+    }
+
+    if (parsedAction.action === "PAY_NEXT_INSTALLMENT") {
+      const result = payNextPayableInstallment(
+        parsedAction.planIdOrTxId,
+        parsedAction.yearMonth ?? "2026-11"
+      );
+      return NextResponse.json(
+        {
+          status: "SUCCESS",
+          paidTransaction: result.paidTransaction,
+        },
+        { status: 200, headers }
+      );
+    }
+
+    if (parsedAction.action === "SYNC_TASKS") {
+      const { mode } = parsedAction;
       if (gasUrl && mode !== "DEMO" && mode !== "WORST_CASE") {
         try {
           const secretToken = process.env.GAS_SECRET_TOKEN?.trim() ?? "";
@@ -257,7 +407,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           syncedTasks: 0,
           mode: mode ?? "DEMO",
           message:
-            "Sincronização simulada em modo Demo (conecte GAS_URL para consumir a fila do Google Tasks).",
+            "Sincronização concluída em modo de demonstração.",
         },
         { status: 200, headers }
       );
@@ -278,8 +428,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const txInput = txParse.data;
-  const effectiveMode =
-    txInput.mode ?? (gasUrl ? "LIVE" : "DEMO");
+  const effectiveMode = txInput.mode ?? (gasUrl ? "LIVE" : "DEMO");
 
   // 3. Se estiver em modo LIVE com GAS_URL configurado, encaminha de forma segura ao Apps Script
   if (effectiveMode === "LIVE" && gasUrl) {

@@ -47,7 +47,7 @@ function CustomGoalTooltip({ active, payload }: CustomGoalTooltipProps) {
   }
   const item = payload[0].payload;
   return (
-    <div className="rounded-xl border border-white/15 bg-[#090A0F]/95 px-3.5 py-2.5 text-xs shadow-2xl backdrop-blur-md">
+    <div className="rounded-xl border border-rose-400/25 bg-[#120910]/95 px-3.5 py-2.5 text-xs shadow-2xl backdrop-blur-md">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span
@@ -56,30 +56,36 @@ function CustomGoalTooltip({ active, payload }: CustomGoalTooltipProps) {
           />
           <span className="font-semibold text-white">{item.nome}</span>
         </div>
-        <span className="rounded border border-white/10 bg-white/[0.06] px-1.5 py-0.5 text-[10px] text-slate-300">
-          {item.tipo === "PATRIMONIO" ? "Patrimônio Real" : "Consumo Diferido"}
+        <span className="rounded border border-rose-400/20 bg-rose-500/15 px-1.5 py-0.5 text-[10px] text-rose-200">
+          {item.tipo === "PATRIMONIO"
+            ? "Futuro & Patrimônio"
+            : "Sonhos & Planos"}
         </span>
       </div>
       <div className="mt-2 space-y-1 tabular-nums text-[11px]">
         <div className="flex justify-between gap-4">
-          <span className="text-slate-400">Saldo Bruto Atual:</span>
+          <span className="text-rose-200/75">Saldo Atual com Rendimento:</span>
           <span className="font-semibold text-white">
             {formatBRL(item.saldo_bruto_atual)}
           </span>
         </div>
         <div className="flex justify-between gap-4">
-          <span className="text-slate-400">Total Aportado:</span>
-          <span className="text-slate-200">{formatBRL(item.total_aportado)}</span>
+          <span className="text-rose-200/75">Valor Aplicado por Nós:</span>
+          <span className="text-rose-100">
+            {formatBRL(item.total_aportado)}
+          </span>
         </div>
         <div className="flex justify-between gap-4">
-          <span className="text-slate-400">Rentabilidade Implícita:</span>
+          <span className="text-rose-200/75">Rendimento Ganho:</span>
           <span className="font-medium text-emerald-300">
             {formatBRL(item.rendimento, true)}
           </span>
         </div>
-        <div className="flex justify-between gap-4 border-t border-white/10 pt-1">
-          <span className="text-slate-400">Meta ({formatBRL(item.valor_alvo)}):</span>
-          <span className="font-semibold text-cyan-300">
+        <div className="flex justify-between gap-4 border-t border-rose-500/20 pt-1">
+          <span className="text-rose-200/75">
+            Meta ({formatBRL(item.valor_alvo)}):
+          </span>
+          <span className="font-semibold text-pink-300">
             {formatPct(item.progressoPct)}
           </span>
         </div>
@@ -124,7 +130,7 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
           : 0;
       const color =
         CATEGORY_COLORS[g.nome as Category] ??
-        (g.tipo === "PATRIMONIO" ? "#10B981" : "#22D3EE");
+        (g.tipo === "PATRIMONIO" ? "#EC4899" : "#FB7185");
 
       return {
         ...g,
@@ -150,63 +156,63 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
 
   return (
     <article
-      aria-label="Módulo 2: Composição da Carteira de Metas"
-      className="flex flex-col justify-between rounded-2xl border border-white/[0.08] bg-[#11131A] p-5 shadow-lg min-w-0"
+      aria-label="Nossas Metas e Caixinhas"
+      className="flex flex-col justify-between rounded-2xl border border-rose-500/20 bg-[#1B0E18] p-5 shadow-lg shadow-rose-950/20 min-w-0"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
+            <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-pink-500/20 text-pink-300">
               <Landmark className="h-3.5 w-3.5" />
             </span>
             <h2 className="text-sm font-semibold text-white truncate">
-              Módulo 2 · Portfólio de Metas & Bifurcação Contábil
+              Nossas Metas & Patrimônio Acumulado
             </h2>
           </div>
-          <p className="mt-1 text-xs text-slate-400">
-            Separação entre Formação de Patrimônio Real e Consumo Diferido
+          <p className="mt-1 text-xs text-rose-200/70">
+            Progresso das nossas metas com o valor aplicado e quanto já rendeu
           </p>
         </div>
-        <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-300 tabular-nums">
+        <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-medium text-emerald-300 tabular-nums">
           <Sparkles className="h-3 w-3" />
-          Juros: {formatBRL(summary.rendimentoTotal, true)}
+          Rendimento: {formatBRL(summary.rendimentoTotal, true)}
         </span>
       </div>
 
-      {/* Accounting Separation Badges (Seção 2.2 de arquitetura.txt) */}
+      {/* Summary Badges */}
       <div className="mt-3.5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-3.5 py-2.5 min-w-0">
+        <div className="rounded-xl border border-pink-500/25 bg-pink-500/[0.08] px-3.5 py-2.5 min-w-0">
           <div className="flex items-center justify-between gap-2 text-xs">
-            <span className="font-medium text-emerald-300 truncate">
-              Formação de Patrimônio Real
+            <span className="font-medium text-pink-200 truncate">
+              Patrimônio de Longo Prazo
             </span>
-            <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-200">
-              PATRIMÔNIO
+            <span className="rounded bg-pink-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-pink-100">
+              FUTURO
             </span>
           </div>
-          <p className="mt-1 text-base font-semibold text-white tabular-nums truncate">
+          <p className="mt-1 text-base font-bold text-white tabular-nums truncate">
             {formatBRL(summary.patrimonioBruto)}
           </p>
-          <p className="text-[11px] text-slate-400 truncate">
-            Casa + Reserva & Patrimônio
+          <p className="text-[11px] text-rose-200/70 truncate">
+            Casa Própria + Reserva do Casal
           </p>
         </div>
 
-        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/[0.06] px-3.5 py-2.5 min-w-0">
+        <div className="rounded-xl border border-rose-400/25 bg-rose-500/[0.08] px-3.5 py-2.5 min-w-0">
           <div className="flex items-center justify-between gap-2 text-xs">
-            <span className="font-medium text-cyan-300 truncate">
-              Provisão de Consumo Diferido
+            <span className="font-medium text-rose-200 truncate">
+              Planos & Objetivos Próximos
             </span>
-            <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-200">
-              OBJETIVO_CONSUMO
+            <span className="rounded bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-rose-100">
+              SONHOS
             </span>
           </div>
-          <p className="mt-1 text-base font-semibold text-white tabular-nums truncate">
+          <p className="mt-1 text-base font-bold text-white tabular-nums truncate">
             {formatBRL(summary.consumoDiferidoBruto)}
           </p>
-          <p className="text-[11px] text-slate-400 truncate">
-            Viagem + Estudos (Fundo Futuro)
+          <p className="text-[11px] text-rose-200/70 truncate">
+            Viagens + Estudos & Cursos
           </p>
         </div>
       </div>
@@ -225,7 +231,7 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
                 innerRadius={58}
                 outerRadius={86}
                 paddingAngle={2}
-                stroke="rgba(9,10,15,0.8)"
+                stroke="rgba(18,9,16,0.9)"
                 strokeWidth={2}
                 isAnimationActive={true}
                 animationDuration={500}
@@ -239,14 +245,14 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
           </ResponsiveContainer>
 
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
-              Saldo Bruto
+            <span className="text-[10px] font-medium uppercase tracking-wider text-rose-200/70">
+              Total Guardado
             </span>
-            <span className="mt-0.5 text-sm font-semibold text-white tabular-nums">
+            <span className="mt-0.5 text-sm font-bold text-white tabular-nums">
               {formatBRL(summary.totalBruto)}
             </span>
-            <span className="text-[11px] text-slate-400 tabular-nums">
-              Aportado {formatBRL(summary.totalAportado)}
+            <span className="text-[11px] text-rose-200/75 tabular-nums">
+              Aplicado {formatBRL(summary.totalAportado)}
             </span>
           </div>
         </div>
@@ -258,7 +264,7 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
             return (
               <div
                 key={goal.id_meta}
-                className="rounded-xl border border-white/[0.05] bg-[#090A0F]/60 px-3 py-2 text-xs min-w-0"
+                className="rounded-xl border border-rose-500/15 bg-[#120910]/70 px-3 py-2 text-xs min-w-0"
               >
                 <div className="flex items-center justify-between gap-2 min-w-0">
                   <div className="flex items-center gap-2 min-w-0">
@@ -274,7 +280,7 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
                     <span className="font-semibold text-white">
                       {formatBRL(goal.saldo_bruto_atual)}
                     </span>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[11px] text-rose-200/60">
                       / {formatBRL(goal.valor_alvo)}
                     </span>
                   </div>
@@ -282,7 +288,7 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
 
                 {/* Progress bar */}
                 <div className="mt-1.5 flex items-center gap-2">
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.07]">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-rose-500/15">
                     <div
                       className="h-full rounded-full transition-all duration-300"
                       style={{
@@ -291,7 +297,7 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
                       }}
                     />
                   </div>
-                  <span className="w-12 text-right text-[11px] font-medium text-slate-300 tabular-nums">
+                  <span className="w-12 text-right text-[11px] font-medium text-rose-200 tabular-nums">
                     {formatPct(goal.progressoPct)}
                   </span>
                 </div>
@@ -302,13 +308,13 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
       </div>
 
       {/* Footer */}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3 text-[11px] text-slate-400">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-rose-500/15 pt-3 text-[11px] text-rose-200/75">
         <span className="inline-flex items-center gap-1">
-          <Compass className="h-3.5 w-3.5 text-cyan-400" />
-          Capital Aportado Total: {formatBRL(summary.totalAportado)}
+          <Compass className="h-3.5 w-3.5 text-rose-400" />
+          Total Aplicado do Bolso: {formatBRL(summary.totalAportado)}
         </span>
-        <span className="tabular-nums text-emerald-300">
-          Rendimento Acumulado: {formatBRL(summary.rendimentoTotal, true)}
+        <span className="tabular-nums text-emerald-300 font-medium">
+          Ganho com Rendimentos: {formatBRL(summary.rendimentoTotal, true)}
         </span>
       </div>
     </article>
