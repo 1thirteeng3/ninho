@@ -11,6 +11,8 @@
  */
 
 const TIMEZONE = "GMT-3";
+// Quando false, setupDatabaseSheets() cria apenas cabeçalhos (sem dados fictícios).
+const SEED_DEMO_DATA = false;
 
 const ALLOWED_FLOW_TYPES = [
   "RENDA",
@@ -313,7 +315,7 @@ function setupDatabaseSheets() {
         18500.0
       ]
     ];
-    initialGoals.forEach(function (row) {
+    (SEED_DEMO_DATA ? initialGoals : []).forEach(function (row) {
       invSheet.appendRow(row);
     });
   }
@@ -336,7 +338,7 @@ function setupDatabaseSheets() {
       ["Seguro Automotivo", "Fundo Anual (Carro/Impostos)", 1800.0, 5, 1050.0],
       ["Revisão Preventiva Anual", "Fundo Anual (Carro/Impostos)", 600.0, 9, 550.0]
     ];
-    initialProvisions.forEach(function (row) {
+    (SEED_DEMO_DATA ? initialProvisions : []).forEach(function (row) {
       provSheet.appendRow(row);
     });
   }
@@ -353,8 +355,8 @@ function setupDatabaseSheets() {
       "dia_fechamento_cartao",
       "dia_vencimento_cartao"
     ]);
-    cfgSheet.appendRow(["Giovanni", 400.0, 15, 22]);
-    cfgSheet.appendRow(["Maria Luiza", 400.0, 20, 27]);
+    cfgSheet.appendRow(["Giovanni", 0, 1, 10]);
+    cfgSheet.appendRow(["Maria Luiza", 0, 1, 10]);
   }
 
   // 5. Aba Ativos_Investimento
@@ -449,7 +451,7 @@ function setupDatabaseSheets() {
         5180.0
       ]
     ];
-    initialAssets.forEach(function (row) {
+    (SEED_DEMO_DATA ? initialAssets : []).forEach(function (row) {
       astSheet.appendRow(row);
     });
   }
@@ -510,7 +512,7 @@ function setupDatabaseSheets() {
         "ATIVO"
       ]
     ];
-    initialReceivables.forEach(function (row) {
+    (SEED_DEMO_DATA ? initialReceivables : []).forEach(function (row) {
       recSheet.appendRow(row);
     });
   }
@@ -1066,6 +1068,161 @@ function payNextInstallmentAction(ss, planId, referenceMonth) {
 }
 
 /**
+ * Resposta JSON padronizada.
+ */
+function jsonOk(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(
+    ContentService.MimeType.JSON
+  );
+}
+
+/**
+ * Atualiza cota mensal livre e dias de cartão de cada membro em Config_Casal.
+ */
+function saveCoupleConfigRows(ss, configs) {
+  let sheet = ss.getSheetByName("Config_Casal");
+  if (!sheet) {
+    setupDatabaseSheets();
+    sheet = ss.getSheetByName("Config_Casal");
+  }
+  configs.forEach(function (cfg) {
+    const usuario = normalizeMember(cfg.usuario);
+    const rowData = [
+      usuario,
+      Math.max(0, parseFloat(cfg.cota_mensal_livre) || 0),
+      Math.min(31, Math.max(1, parseInt(cfg.dia_fechamento_cartao, 10) || 1)),
+      Math.min(31, Math.max(1, parseInt(cfg.dia_vencimento_cartao, 10) || 10))
+    ];
+    const values = sheet.getDataRange().getValues();
+    let updated = false;
+    for (let r = 1; r < values.length; r++) {
+      if (normalizeMember(values[r][0]) === usuario) {
+        sheet.getRange(r + 1, 1, 1, rowData.length).setValues([rowData]);
+        updated = true;
+        break;
+      }
+    }
+    if (!updated) sheet.appendRow(rowData);
+  });
+}
+
+/**
+ * Cria ou atualiza uma meta em Investimentos_Metas (chave: id_meta).
+ */
+function upsertGoalRow(ss, goal) {
+  let sheet = ss.getSheetByName("Investimentos_Metas");
+  if (!sheet) {
+    setupDatabaseSheets();
+    sheet = ss.getSheetByName("Investimentos_Metas");
+  }
+  const goalId = String(goal.id_meta || "meta_" + new Date().getTime()).trim();
+  const rowData = [
+    sanitizeCell(goalId),
+    sanitizeCell(goal.nome || "Meta"),
+    goal.tipo === "OBJETIVO_CONSUMO" ? "OBJETIVO_CONSUMO" : "PATRIMONIO",
+    Math.round((parseFloat(goal.valor_alvo) || 0) * 100) / 100,
+    Math.round((parseFloat(goal.total_aportado) || 0) * 100) / 100,
+    Math.round((parseFloat(goal.saldo_bruto_atual) || 0) * 100) / 100
+  ];
+  const values = sheet.getDataRange().getValues();
+  let updated = false;
+  for (let r = 1; r < values.length; r++) {
+    if (String(values[r][0]).trim() === goalId) {
+      sheet.getRange(r + 1, 1, 1, rowData.length).setValues([rowData]);
+      updated = true;
+      break;
+    }
+  }
+  if (!updated) sheet.appendRow(rowData);
+  syncGoalsFromAssetsSheet(ss);
+}
+
+/**
+ * Cria ou atualiza uma despesa anual em Provisoes_Anuais (chave: item).
+ */
+function upsertProvisionRow(ss, prov) {
+  let sheet = ss.getSheetByName("Provisoes_Anuais");
+  if (!sheet) {
+    setupDatabaseSheets();
+    sheet = ss.getSheetByName("Provisoes_Anuais");
+  }
+  const item = String(prov.item || "Despesa anual").trim();
+  const rowData = [
+    sanitizeCell(item),
+    sanitizeCell(prov.categoria_pai || "Fundo Anual (Carro/Impostos)"),
+    Math.round((parseFloat(prov.valor_anual_estimado) || 0) * 100) / 100,
+    Math.min(12, Math.max(1, parseInt(prov.mes_vencimento, 10) || 1)),
+    Math.round((parseFloat(prov.saldo_acumulado) || 0) * 100) / 100
+  ];
+  const values = sheet.getDataRange().getValues();
+  let updated = false;
+  for (let r = 1; r < values.length; r++) {
+    if (String(values[r][0]).trim() === item) {
+      sheet.getRange(r + 1, 1, 1, rowData.length).setValues([rowData]);
+      updated = true;
+      break;
+    }
+  }
+  if (!updated) sheet.appendRow(rowData);
+}
+
+/**
+ * Insere linhas de transação já calculadas (ex.: parcelamentos em andamento).
+ */
+function appendRawTransactions(ss, rows) {
+  let sheet = ss.getSheetByName("Transacoes");
+  if (!sheet) {
+    setupDatabaseSheets();
+    sheet = ss.getSheetByName("Transacoes");
+  }
+  let count = 0;
+  rows.forEach(function (tx) {
+    sheet.appendRow([
+      sanitizeCell(tx.id),
+      sanitizeCell(String(tx.data_competencia || "").slice(0, 10)),
+      sanitizeCell(String(tx.data_caixa || "").slice(0, 10)),
+      sanitizeCell(tx.tipo_fluxo),
+      sanitizeCell(tx.categoria),
+      sanitizeCell(tx.descricao),
+      Math.round((parseFloat(tx.valor) || 0) * 100) / 100,
+      sanitizeCell(tx.conta),
+      sanitizeCell(tx.pago_por),
+      sanitizeCell(tx.escopo),
+      parseInt(tx.parcela_atual, 10) || 1,
+      parseInt(tx.total_parcelas, 10) || 1,
+      sanitizeCell(tx.id_plano_parcelas || "")
+    ]);
+    count++;
+  });
+  return count;
+}
+
+/**
+ * Apaga todas as linhas de dados (mantém cabeçalhos) e zera a Config_Casal.
+ */
+function clearAllData(ss) {
+  const names = [
+    "Transacoes",
+    "Investimentos_Metas",
+    "Provisoes_Anuais",
+    "Ativos_Investimento",
+    "Valores_Receber"
+  ];
+  names.forEach(function (name) {
+    const sh = ss.getSheetByName(name);
+    if (sh && sh.getLastRow() > 1) {
+      sh.deleteRows(2, sh.getLastRow() - 1);
+    }
+  });
+  const cfg = ss.getSheetByName("Config_Casal");
+  if (cfg) {
+    if (cfg.getLastRow() > 1) cfg.deleteRows(2, cfg.getLastRow() - 1);
+    cfg.appendRow(["Giovanni", 0, 1, 10]);
+    cfg.appendRow(["Maria Luiza", 0, 1, 10]);
+  }
+}
+
+/**
  * 1. ENDPOINT GET: Consumido pelo Next.js na Vercel para hidratar o Dashboard.
  * Suporta ?action=sync para processar a fila do Google Tasks antes de retornar os dados.
  */
@@ -1214,6 +1371,41 @@ function doPost(e) {
       return ContentService.createTextOutput(
         JSON.stringify({ status: "SUCCESS", result: res })
       ).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (bodyData.action === "SAVE_COUPLE_CONFIG" && bodyData.config) {
+      saveCoupleConfigRows(ss, bodyData.config);
+      return jsonOk({ status: "SUCCESS" });
+    }
+
+    if (bodyData.action === "UPSERT_GOAL" && bodyData.goal) {
+      upsertGoalRow(ss, bodyData.goal);
+      return jsonOk({ status: "SUCCESS" });
+    }
+
+    if (bodyData.action === "DELETE_GOAL" && bodyData.goalId) {
+      const deleted = deleteRowById(ss.getSheetByName("Investimentos_Metas"), bodyData.goalId);
+      return jsonOk({ status: "SUCCESS", deleted: deleted });
+    }
+
+    if (bodyData.action === "UPSERT_PROVISION" && bodyData.provision) {
+      upsertProvisionRow(ss, bodyData.provision);
+      return jsonOk({ status: "SUCCESS" });
+    }
+
+    if (bodyData.action === "DELETE_PROVISION" && bodyData.item) {
+      const deleted = deleteRowById(ss.getSheetByName("Provisoes_Anuais"), bodyData.item);
+      return jsonOk({ status: "SUCCESS", deleted: deleted });
+    }
+
+    if (bodyData.action === "APPEND_TRANSACTIONS" && bodyData.rows) {
+      const count = appendRawTransactions(ss, bodyData.rows);
+      return jsonOk({ status: "SUCCESS", count: count });
+    }
+
+    if (bodyData.action === "CLEAR_ALL_DATA") {
+      clearAllData(ss);
+      return jsonOk({ status: "SUCCESS" });
     }
 
     const normalizedPayload =

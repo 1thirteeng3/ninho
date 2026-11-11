@@ -1,11 +1,11 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from "react";
 import {
   ChevronDown,
   Moon,
   RefreshCw,
-  RotateCcw,
+  SlidersHorizontal,
   Sun,
 } from "lucide-react";
 import type { ViewMode } from "@/lib/domain/types";
@@ -18,26 +18,53 @@ export interface MonthOption {
   tag?: string;
 }
 
-export const AVAILABLE_MONTHS: readonly MonthOption[] = [
-  { value: "2026-09", label: "Setembro 2026", tag: "Sem Renda" },
-  { value: "2026-10", label: "Outubro 2026", tag: "Mês Anterior" },
-  { value: "2026-11", label: "Novembro 2026", tag: "Mês Atual" },
-  { value: "2026-12", label: "Dezembro 2026", tag: "Próximas Faturas" },
-  { value: "2027-01", label: "Janeiro 2027", tag: "Próximas Faturas" },
-  { value: "2027-02", label: "Fevereiro 2027", tag: "Próximas Faturas" },
+const MONTH_NAMES = [
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
+
+export function getCurrentYearMonth(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** Meses de referência: 12 anteriores e 18 seguintes ao mês atual. */
+export function buildAvailableMonths(): MonthOption[] {
+  const now = new Date();
+  const options: MonthOption[] = [];
+  for (let offset = -12; offset <= 18; offset++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + offset, 1, 12, 0, 0);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    options.push({
+      value,
+      label: `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`,
+      tag: offset === 0 ? "Mês Atual" : undefined,
+    });
+  }
+  return options;
+}
+
+export const AVAILABLE_MONTHS: readonly MonthOption[] = buildAvailableMonths();
 
 interface HeaderControlsProps {
   yearMonth: string;
   onYearMonthChange: (yearMonth: string) => void;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
-  dataSourceMode: DataSourceMode;
-  onDataSourceModeChange: (mode: DataSourceMode) => void;
   isConnectedToSheets: boolean;
   isSyncing: boolean;
   onSyncTasks: () => void;
-  onResetDemo: () => void;
+  onOpenSetup: () => void;
 }
 
 export function HeaderControls({
@@ -45,12 +72,10 @@ export function HeaderControls({
   onYearMonthChange,
   viewMode,
   onViewModeChange,
-  dataSourceMode,
-  onDataSourceModeChange,
   isConnectedToSheets,
   isSyncing,
   onSyncTasks,
-  onResetDemo,
+  onOpenSetup,
 }: HeaderControlsProps) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
@@ -222,55 +247,16 @@ export function HeaderControls({
               </button>
             </div>
 
-            {/* Discreet Environment Switcher: Exemplo / Extremo / Planilha */}
-            <div
-              role="group"
-              aria-label="Ambiente de dados"
-              className="surface-subtle inline-flex rounded-full p-0.5 text-xs"
+            {/* Central de Configuração (Onboarding revisitável) */}
+            <button
+              type="button"
+              onClick={onOpenSetup}
+              className="pressable inline-flex items-center gap-1.5 rounded-full border-2 border-[#1F0D18] bg-[#FF3B9A] px-3 py-1.5 text-[11px] font-bold text-white shadow-[2px_2px_0px_#1F0D18]"
+              title="Configurar cartões, parcelas, ativos, metas e mais"
             >
-              <button
-                type="button"
-                onClick={() => onDataSourceModeChange("DEMO")}
-                className={`pressable rounded-full px-2.5 py-1 text-[11px] font-medium transition-all ${
-                  dataSourceMode === "DEMO"
-                    ? "surface-card text-ink font-semibold"
-                    : "text-ink-secondary hover:text-ink"
-                }`}
-              >
-                Exemplo
-              </button>
-              <button
-                type="button"
-                onClick={() => onDataSourceModeChange("WORST_CASE")}
-                className={`pressable rounded-full px-2.5 py-1 text-[11px] font-medium transition-all ${
-                  dataSourceMode === "WORST_CASE"
-                    ? "surface-card text-ink font-semibold"
-                    : "text-ink-secondary hover:text-ink"
-                }`}
-                title="Cenário de estresse com compras parceladas longas e mesada estourada"
-              >
-                Extremo
-              </button>
-              <button
-                type="button"
-                onClick={() => onDataSourceModeChange("LIVE")}
-                className={`pressable inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all ${
-                  dataSourceMode === "LIVE"
-                    ? "surface-card text-ink font-semibold"
-                    : "text-ink-secondary hover:text-ink"
-                }`}
-              >
-                <span>Planilha</span>
-                <span
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{
-                    backgroundColor: isConnectedToSheets
-                      ? "#0F766E"
-                      : "var(--text-muted)",
-                  }}
-                />
-              </button>
-            </div>
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              <span>Configurar</span>
+            </button>
 
             {/* Desktop Icon Controls: Sync, Reset, Theme Toggle */}
             <div className="hidden md:flex items-center gap-1.5">
@@ -286,18 +272,6 @@ export function HeaderControls({
                   className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`}
                 />
               </button>
-
-              {dataSourceMode !== "LIVE" && (
-                <button
-                  type="button"
-                  onClick={onResetDemo}
-                  className="pressable surface-card inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-secondary hover:text-ink"
-                  title="Restaurar dados iniciais de exemplo"
-                  aria-label="Restaurar dados iniciais"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                </button>
-              )}
 
               <button
                 type="button"

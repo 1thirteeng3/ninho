@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { splitInstallmentsWithBillingCycle } from "@/lib/domain/financial-engine";
 import {
+  AnnualProvisionSchema,
+  AssetTypeSchema,
   CategorySchema,
+  CoupleConfigSchema,
   FlowTypeSchema,
   InvestmentAssetSchema,
+  InvestmentGoalSchema,
   MemberSchema,
   ReceivablePlanSchema,
   ScopeSchema,
@@ -88,6 +92,47 @@ const ActionRequestSchema = z.discriminatedUnion("action", [
     yearMonth: z.string().optional(),
     mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
   }),
+  z.object({
+    action: z.literal("SAVE_COUPLE_CONFIG"),
+    config: z.array(CoupleConfigSchema).min(1).max(2),
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("UPSERT_GOAL"),
+    goal: InvestmentGoalSchema,
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("DELETE_GOAL"),
+    id: z.string().min(1),
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("UPSERT_PROVISION"),
+    provision: AnnualProvisionSchema,
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("DELETE_PROVISION"),
+    item: z.string().min(1),
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("CREATE_ONGOING_PLAN"),
+    descricao: z.string().min(1).max(300),
+    valor_total: z.number().positive(),
+    total_parcelas: z.number().int().min(2).max(120),
+    parcelas_pagas: z.number().int().min(0).max(120),
+    proximo_vencimento: z.string().min(8),
+    conta: z.string().min(1).max(100),
+    categoria: CategorySchema,
+    pago_por: MemberSchema,
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("CLEAR_ALL_DATA"),
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
 ]);
 
 function buildSecurityHeaders(): HeadersInit {
@@ -135,6 +180,157 @@ async function forwardActionToGasIfLive(
   }
 }
 
+type Row = Record<string, unknown>;
+
+function str(v: unknown): string {
+  return v === null || v === undefined ? "" : String(v).trim();
+}
+
+function num(v: unknown): number {
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+  const n = Number(str(v).replace(",", "."));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function isoDate(v: unknown): string {
+  return str(v).slice(0, 10);
+}
+
+function pick<T extends string>(v: unknown, allowed: readonly T[], fallback: T): T {
+  const s = str(v);
+  return (allowed as readonly string[]).includes(s) ? (s as T) : fallback;
+}
+
+function normalizeRows<T>(raw: unknown, fn: (r: Row) => T | null): T[] {
+  if (!Array.isArray(raw)) return [];
+  const out: T[] = [];
+  for (const item of raw) {
+    if (item && typeof item === "object") {
+      const r = fn(item as Row);
+      if (r) out.push(r);
+    }
+  }
+  return out;
+}
+
+const MEMBERS = ["Giovanni", "Maria Luiza"] as const;
+const SCOPES = ["CONJUNTO", "INDIVIDUAL_GIOVANNI", "INDIVIDUAL_MARIA_LUIZA"] as const;
+const FLOWS = ["RENDA", "CUSTO", "PROVISAO_ANUAL", "INVESTIMENTO", "AJUSTE"] as const;
+const OWNERS = ["Casal", "Giovanni", "Maria Luiza"] as const;
+
+function normalizeTransaction(r: Row) {
+  if (!str(r.id)) return null;
+  return {
+    id: str(r.id),
+    data_competencia: isoDate(r.data_competencia),
+    data_caixa: isoDate(r.data_caixa) || isoDate(r.data_competencia),
+    tipo_fluxo: pick(r.tipo_fluxo, FLOWS, "CUSTO"),
+    categoria: str(r.categoria) as z.infer<typeof CategorySchema>,
+    descricao: str(r.descricao),
+    valor: num(r.valor),
+    conta: str(r.conta),
+    pago_por: pick(r.pago_por, MEMBERS, "Giovanni"),
+    escopo: pick(r.escopo, SCOPES, "CONJUNTO"),
+    parcela_atual: num(r.parcela_atual) || 1,
+    total_parcelas: num(r.total_parcelas) || 1,
+    id_plano_parcelas: str(r.id_plano_parcelas),
+  };
+}
+
+function normalizeGoal(r: Row) {
+  if (!str(r.id_meta) && !str(r.nome)) return null;
+  return {
+    id_meta: str(r.id_meta) || str(r.nome),
+    nome: str(r.nome),
+    tipo: pick(r.tipo, ["PATRIMONIO", "OBJETIVO_CONSUMO"] as const, "PATRIMONIO"),
+    valor_alvo: num(r.valor_alvo),
+    total_aportado: num(r.total_aportado),
+    saldo_bruto_atual: num(r.saldo_bruto_atual),
+  };
+}
+
+function normalizeProvision(r: Row) {
+  if (!str(r.item)) return null;
+  return {
+    item: str(r.item),
+    categoria_pai: str(r.categoria_pai),
+    valor_anual_estimado: num(r.valor_anual_estimado),
+    mes_vencimento: str(r.mes_vencimento).padStart(2, "0"),
+    saldo_acumulado: num(r.saldo_acumulado),
+  };
+}
+
+function normalizeConfig(r: Row) {
+  const usuario = str(r.usuario);
+  if (usuario !== "Giovanni" && usuario !== "Maria Luiza") return null;
+  return {
+    usuario,
+    cota_mensal_livre: num(r.cota_mensal_livre),
+    dia_fechamento_cartao: num(r.dia_fechamento_cartao) || 1,
+    dia_vencimento_cartao: num(r.dia_vencimento_cartao) || 10,
+  };
+}
+
+function normalizeAsset(r: Row) {
+  if (!str(r.id)) return null;
+  return {
+    id: str(r.id),
+    nome: str(r.nome),
+    tipo_ativo: pick(
+      r.tipo_ativo,
+      AssetTypeSchema.options,
+      "Poupança / Outros"
+    ),
+    rendimento: str(r.rendimento),
+    liquidez: str(r.liquidez),
+    instituicao: str(r.instituicao),
+    meta_vinculada: str(r.meta_vinculada),
+    titular: pick(
+      str(r.titular) === "Casal" || str(r.titular) === "Conjunto"
+        ? "Casal"
+        : r.titular,
+      OWNERS,
+      "Casal"
+    ),
+    valor_aportado: num(r.valor_aportado),
+    saldo_atual: num(r.saldo_atual),
+  };
+}
+
+function normalizeReceivable(r: Row) {
+  if (!str(r.id)) return null;
+  const total = Math.max(1, Math.floor(num(r.total_parcelas)) || 1);
+  const received = Math.max(0, Math.floor(num(r.parcelas_recebidas)));
+  const recebedorRaw = str(r.recebedor) === "Conjunto" ? "Casal" : r.recebedor;
+  return {
+    id: str(r.id),
+    descricao: str(r.descricao),
+    pagador_origem: str(r.pagador_origem),
+    recebedor: pick(recebedorRaw, OWNERS, "Casal"),
+    valor_total: num(r.valor_total),
+    total_parcelas: total,
+    parcelas_recebidas: received,
+    proximo_vencimento: isoDate(r.proximo_vencimento),
+    conta_destino: str(r.conta_destino),
+    status: received >= total ? ("CONCLUIDO" as const) : ("EM_ANDAMENTO" as const),
+  };
+}
+
+function emptyPayload() {
+  return {
+    transacoes: [],
+    investimentos: [],
+    provisoes: [],
+    config: [
+      { usuario: "Giovanni", cota_mensal_livre: 0, dia_fechamento_cartao: 1, dia_vencimento_cartao: 10 },
+      { usuario: "Maria Luiza", cota_mensal_livre: 0, dia_fechamento_cartao: 1, dia_vencimento_cartao: 10 },
+    ],
+    ativos: [],
+    recebiveis: [],
+    timestamp: new Date().toISOString(),
+  };
+}
+
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const headers = buildSecurityHeaders();
   const { searchParams } = new URL(request.url);
@@ -164,7 +360,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // 2. Modo DEMO explícito ou fallback quando GAS_URL não está configurado
+  // 2a. Produção sem planilha configurada: painel vazio (sem dados fictícios)
+  if (requestedMode === "LIVE" && !gasUrl) {
+    return NextResponse.json(
+      {
+        ...emptyPayload(),
+        mode: "LIVE" as const,
+        isConnectedToSheets: false,
+        warning: "Planilha não configurada (GAS_URL ausente).",
+      },
+      { status: 200, headers }
+    );
+  }
+
+  // 2b. Modo DEMO explícito ou fallback quando GAS_URL não está configurado
   if (requestedMode === "DEMO" || !gasUrl) {
     const store = getOrInitDemoStore();
     return NextResponse.json(
@@ -198,14 +407,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
 
     if (!response.ok) {
-      const fallback = getOrInitDemoStore();
       return NextResponse.json(
         {
-          ...fallback,
-          timestamp: new Date().toISOString(),
-          mode: "DEMO" as const,
+          ...emptyPayload(),
+          mode: "LIVE" as const,
           isConnectedToSheets: false,
-          warning: "Falha ao consultar Google Apps Script; exibindo dataset Demo.",
+          warning: "Falha ao consultar a planilha. Tente atualizar novamente.",
         },
         { status: 200, headers }
       );
@@ -222,21 +429,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const demoFallback = getOrInitDemoStore();
     return NextResponse.json(
       {
-        transacoes: Array.isArray(data.transacoes) ? data.transacoes : [],
-        investimentos: Array.isArray(data.investimentos)
-          ? data.investimentos
-          : [],
-        provisoes: Array.isArray(data.provisoes) ? data.provisoes : [],
-        config: Array.isArray(data.config) ? data.config : [],
-        ativos: Array.isArray(data.ativos)
-          ? data.ativos
-          : demoFallback.ativos ?? [],
-        recebiveis: Array.isArray(data.recebiveis)
-          ? data.recebiveis
-          : demoFallback.recebiveis ?? [],
+        transacoes: normalizeRows(data.transacoes, normalizeTransaction),
+        investimentos: normalizeRows(data.investimentos, normalizeGoal),
+        provisoes: normalizeRows(data.provisoes, normalizeProvision),
+        config: normalizeRows(data.config, normalizeConfig),
+        ativos: normalizeRows(data.ativos, normalizeAsset),
+        recebiveis: normalizeRows(data.recebiveis, normalizeReceivable),
         syncedTasks:
           typeof data.syncedTasks === "number" ? data.syncedTasks : 0,
         timestamp:
@@ -249,15 +449,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       { status: 200, headers }
     );
   } catch {
-    const fallback = getOrInitDemoStore();
     return NextResponse.json(
       {
-        ...fallback,
-        timestamp: new Date().toISOString(),
-        mode: "DEMO" as const,
+        ...emptyPayload(),
+        mode: "LIVE" as const,
         isConnectedToSheets: false,
-        warning:
-          "Não foi possível conectar ao Google Apps Script; operando em modo Demo local.",
+        warning: "Não foi possível conectar à planilha no momento.",
       },
       { status: 200, headers }
     );
@@ -411,6 +608,94 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           status: "SUCCESS",
           paidTransaction: result.paidTransaction,
         },
+        { status: 200, headers }
+      );
+    }
+
+    if (parsedAction.action === "SAVE_COUPLE_CONFIG") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "SAVE_COUPLE_CONFIG",
+        config: parsedAction.config,
+      });
+      return NextResponse.json({ status: "SUCCESS" }, { status: 200, headers });
+    }
+
+    if (parsedAction.action === "UPSERT_GOAL") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "UPSERT_GOAL",
+        goal: parsedAction.goal,
+      });
+      return NextResponse.json({ status: "SUCCESS" }, { status: 200, headers });
+    }
+
+    if (parsedAction.action === "DELETE_GOAL") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "DELETE_GOAL",
+        goalId: parsedAction.id,
+      });
+      return NextResponse.json({ status: "SUCCESS" }, { status: 200, headers });
+    }
+
+    if (parsedAction.action === "UPSERT_PROVISION") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "UPSERT_PROVISION",
+        provision: parsedAction.provision,
+      });
+      return NextResponse.json({ status: "SUCCESS" }, { status: 200, headers });
+    }
+
+    if (parsedAction.action === "DELETE_PROVISION") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "DELETE_PROVISION",
+        item: parsedAction.item,
+      });
+      return NextResponse.json({ status: "SUCCESS" }, { status: 200, headers });
+    }
+
+    if (parsedAction.action === "CLEAR_ALL_DATA") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "CLEAR_ALL_DATA",
+      });
+      return NextResponse.json({ status: "SUCCESS" }, { status: 200, headers });
+    }
+
+    if (parsedAction.action === "CREATE_ONGOING_PLAN") {
+      const [yy, mm, dd] = parsedAction.proximo_vencimento
+        .slice(0, 10)
+        .split("-")
+        .map((p) => parseInt(p, 10));
+      if (!yy || !mm || !dd) {
+        return NextResponse.json(
+          { status: "ERROR", message: "Data da próxima parcela inválida." },
+          { status: 422, headers }
+        );
+      }
+      const firstMonthIndex = mm - 1 - parsedAction.parcelas_pagas;
+      const firstDate = new Date(yy, firstMonthIndex, 1, 12, 0, 0);
+      const firstIso = `${String(firstDate.getFullYear()).padStart(4, "0")}-${String(
+        firstDate.getMonth() + 1
+      ).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
+      const baseId = `tx_${Date.now()}`;
+      const rows = splitInstallmentsWithBillingCycle({
+        id_base: baseId,
+        data_competencia: firstIso,
+        data_caixa: firstIso,
+        tipo_fluxo: "CUSTO",
+        categoria: parsedAction.categoria,
+        descricao: parsedAction.descricao,
+        valor: -Math.abs(parsedAction.valor_total),
+        conta: parsedAction.conta,
+        pago_por: parsedAction.pago_por,
+        escopo: "CONJUNTO",
+        total_parcelas: parsedAction.total_parcelas,
+        id_plano_parcelas: `plan_${baseId}`,
+      });
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "APPEND_TRANSACTIONS",
+        rows,
+      });
+      return NextResponse.json(
+        { status: "SUCCESS", count: rows.length },
         { status: 200, headers }
       );
     }

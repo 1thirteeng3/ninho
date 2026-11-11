@@ -6,8 +6,10 @@ import { CoupleGovernanceModule } from "@/components/dashboard/CoupleGovernanceM
 import { DynamicAllocationTable } from "@/components/dashboard/DynamicAllocationTable";
 import {
   HeaderControls,
+  getCurrentYearMonth,
   type DataSourceMode,
 } from "@/components/dashboard/HeaderControls";
+import { OnboardingSetupModal } from "@/components/dashboard/OnboardingSetupModal";
 import { InstallmentsManagerModule } from "@/components/dashboard/InstallmentsManagerModule";
 import { InvestmentAssetsManager } from "@/components/dashboard/InvestmentAssetsManager";
 import { InvestmentGoalsChart } from "@/components/dashboard/InvestmentGoalsChart";
@@ -22,10 +24,6 @@ import {
   projectFutureInvoices,
 } from "@/lib/domain/financial-engine";
 import type { DashboardPayload, ViewMode } from "@/lib/domain/types";
-import {
-  getRealisticDemoDataset,
-  getWorstCaseDataset,
-} from "@/lib/mocks/demo-datasets";
 
 export type WorkspaceTab =
   | "OVERVIEW"
@@ -35,83 +33,93 @@ export type WorkspaceTab =
   | "GOVERNANCE"
   | "ALL";
 
+const EMPTY_PAYLOAD: DashboardPayload = {
+  transacoes: [],
+  investimentos: [],
+  provisoes: [],
+  config: [],
+  ativos: [],
+  recebiveis: [],
+  timestamp: new Date().toISOString(),
+  mode: "LIVE",
+};
+
+const DATA_SOURCE: DataSourceMode = "LIVE";
+
 export default function NinhoDashboardPage() {
-  const [yearMonth, setYearMonth] = useState<string>("2026-11");
+  const [yearMonth, setYearMonth] = useState<string>(() =>
+    getCurrentYearMonth()
+  );
   const [viewMode, setViewMode] = useState<ViewMode>("CAIXA");
-  const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>("DEMO");
   const [activeWorkspaceTab, setActiveWorkspaceTab] =
     useState<WorkspaceTab>("OVERVIEW");
   const [isConnectedToSheets, setIsConnectedToSheets] =
     useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [isSetupOpen, setIsSetupOpen] = useState<boolean>(false);
+  const [isFirstAccess, setIsFirstAccess] = useState<boolean>(false);
 
-  const [payload, setPayload] = useState<DashboardPayload>(() =>
-    getRealisticDemoDataset("2026-11")
-  );
+  const [payload, setPayload] = useState<DashboardPayload>(EMPTY_PAYLOAD);
 
-  const fetchDashboardData = useCallback(
-    async (targetMode: DataSourceMode) => {
-      try {
-        const res = await fetch(`/api/sheets?mode=${targetMode}`, {
-          method: "GET",
-          cache: "no-store",
-        });
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/sheets?mode=${DATA_SOURCE}`, {
+        method: "GET",
+        cache: "no-store",
+      });
 
-        if (!res.ok) {
-          throw new Error("Erro ao consultar dados.");
-        }
-
-        const data = (await res.json()) as DashboardPayload & {
-          isConnectedToSheets?: boolean;
-          warning?: string;
-        };
-
-        if (Array.isArray(data.transacoes)) {
-          setPayload({
-            transacoes: data.transacoes,
-            investimentos: data.investimentos ?? [],
-            provisoes: data.provisoes ?? [],
-            config: data.config ?? [],
-            ativos: data.ativos ?? [],
-            recebiveis: data.recebiveis ?? [],
-            timestamp: data.timestamp ?? new Date().toISOString(),
-            mode: data.mode,
-          });
-        }
-        setIsConnectedToSheets(Boolean(data.isConnectedToSheets));
-
-        if (targetMode === "LIVE" && data.warning) {
-          toast.info(data.warning);
-        }
-      } catch {
-        const fallback =
-          targetMode === "WORST_CASE"
-            ? getWorstCaseDataset(yearMonth)
-            : getRealisticDemoDataset(yearMonth);
-        setPayload(fallback);
+      if (!res.ok) {
+        throw new Error("Erro ao consultar dados.");
       }
-    },
-    [yearMonth]
-  );
+
+      const data = (await res.json()) as DashboardPayload & {
+        isConnectedToSheets?: boolean;
+        warning?: string;
+      };
+
+      if (Array.isArray(data.transacoes)) {
+        setPayload({
+          transacoes: data.transacoes,
+          investimentos: data.investimentos ?? [],
+          provisoes: data.provisoes ?? [],
+          config: data.config ?? [],
+          ativos: data.ativos ?? [],
+          recebiveis: data.recebiveis ?? [],
+          timestamp: data.timestamp ?? new Date().toISOString(),
+          mode: data.mode,
+        });
+      }
+      setIsConnectedToSheets(Boolean(data.isConnectedToSheets));
+
+      if (data.warning) {
+        toast.info(data.warning);
+      }
+      return data;
+    } catch {
+      toast.error("Não foi possível carregar os dados da planilha.");
+      return null;
+    } finally {
+      setIsLoaded(true);
+    }
+  }, []);
 
   useEffect(() => {
-    void fetchDashboardData(dataSourceMode);
-  }, [dataSourceMode, fetchDashboardData]);
-
-  function handleDataSourceModeChange(nextMode: DataSourceMode) {
-    setDataSourceMode(nextMode);
-    if (nextMode === "WORST_CASE") {
-      toast.warning("Modo de Teste Extremo ativado", {
-        description:
-          "Exibindo compras longas, parcelamentos longos, mesadas estouradas e mês sem renda.",
-      });
-    } else if (nextMode === "DEMO") {
-      toast.info("Dados de Exemplo ativados", {
-        description:
-          "Exibindo o planejamento de Giovanni & Maria Luiza com ativos, parcelas e logs.",
-      });
-    }
-  }
+    void (async () => {
+      const data = await fetchDashboardData();
+      if (!data) return;
+      const isEmpty =
+        (data.transacoes ?? []).length === 0 &&
+        (data.investimentos ?? []).length === 0 &&
+        (data.ativos ?? []).length === 0 &&
+        (data.recebiveis ?? []).length === 0 &&
+        (data.provisoes ?? []).length === 0;
+      if (isEmpty && data.isConnectedToSheets) {
+        setIsFirstAccess(true);
+        setIsSetupOpen(true);
+      }
+    })();
+  }, [fetchDashboardData]);
 
   function handleSyncTasks() {
     if (isSyncing) return;
@@ -123,7 +131,7 @@ export default function NinhoDashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "SYNC_TASKS",
-          mode: dataSourceMode,
+          mode: DATA_SOURCE,
         }),
       });
       if (!response.ok) {
@@ -133,7 +141,7 @@ export default function NinhoDashboardPage() {
         syncedTasks?: number;
         message?: string;
       };
-      await fetchDashboardData(dataSourceMode);
+      await fetchDashboardData();
       return data;
     })().finally(() => {
       setIsSyncing(false);
@@ -149,23 +157,6 @@ export default function NinhoDashboardPage() {
         err instanceof Error ? err.message : "Erro ao sincronizar.",
     });
   }
-
-  async function handleResetDemo() {
-    try {
-      const res = await fetch("/api/sheets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "RESET_DEMO" }),
-      });
-      if (res.ok) {
-        await fetchDashboardData(dataSourceMode);
-        toast.success("Dados restaurados para o estado inicial.");
-      }
-    } catch {
-      toast.error("Não foi possível restaurar os dados.");
-    }
-  }
-
   const allocation = useMemo(
     () =>
       calculateIncomeAllocation(payload.transacoes, yearMonth, viewMode),
@@ -245,20 +236,23 @@ export default function NinhoDashboardPage() {
         onYearMonthChange={setYearMonth}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        dataSourceMode={dataSourceMode}
-        onDataSourceModeChange={handleDataSourceModeChange}
         isConnectedToSheets={isConnectedToSheets}
         isSyncing={isSyncing}
         onSyncTasks={handleSyncTasks}
-        onResetDemo={handleResetDemo}
+        onOpenSetup={() => {
+          setIsFirstAccess(false);
+          setIsSetupOpen(true);
+        }}
       />
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         {/* Omnibox Lançamento Rápido */}
         <QuickEntryBar
           yearMonth={yearMonth}
-          dataSourceMode={dataSourceMode}
-          onTransactionCreated={() => fetchDashboardData(dataSourceMode)}
+          dataSourceMode={DATA_SOURCE}
+          onTransactionCreated={async () => {
+            await fetchDashboardData();
+          }}
         />
 
         {/* Hero Editorial de Balanço Mensal */}
@@ -337,8 +331,10 @@ export default function NinhoDashboardPage() {
             transactions={payload.transacoes}
             yearMonth={yearMonth}
             viewMode={viewMode}
-            dataSourceMode={dataSourceMode}
-            onDataChanged={() => fetchDashboardData(dataSourceMode)}
+            dataSourceMode={DATA_SOURCE}
+            onDataChanged={async () => {
+            await fetchDashboardData();
+          }}
           />
         )}
 
@@ -349,8 +345,10 @@ export default function NinhoDashboardPage() {
             <InvestmentAssetsManager
               assets={payload.ativos ?? []}
               goals={payload.investimentos}
-              dataSourceMode={dataSourceMode}
-              onDataChanged={() => fetchDashboardData(dataSourceMode)}
+              dataSourceMode={DATA_SOURCE}
+              onDataChanged={async () => {
+            await fetchDashboardData();
+          }}
             />
           </div>
         )}
@@ -361,8 +359,10 @@ export default function NinhoDashboardPage() {
             transactions={payload.transacoes}
             receivables={payload.recebiveis ?? []}
             yearMonth={yearMonth}
-            dataSourceMode={dataSourceMode}
-            onDataChanged={() => fetchDashboardData(dataSourceMode)}
+            dataSourceMode={DATA_SOURCE}
+            onDataChanged={async () => {
+            await fetchDashboardData();
+          }}
           />
         )}
 
@@ -397,24 +397,30 @@ export default function NinhoDashboardPage() {
             <InvestmentAssetsManager
               assets={payload.ativos ?? []}
               goals={payload.investimentos}
-              dataSourceMode={dataSourceMode}
-              onDataChanged={() => fetchDashboardData(dataSourceMode)}
+              dataSourceMode={DATA_SOURCE}
+              onDataChanged={async () => {
+            await fetchDashboardData();
+          }}
             />
 
             <InstallmentsManagerModule
               transactions={payload.transacoes}
               receivables={payload.recebiveis ?? []}
               yearMonth={yearMonth}
-              dataSourceMode={dataSourceMode}
-              onDataChanged={() => fetchDashboardData(dataSourceMode)}
+              dataSourceMode={DATA_SOURCE}
+              onDataChanged={async () => {
+            await fetchDashboardData();
+          }}
             />
 
             <TransactionLogsModule
               transactions={payload.transacoes}
               yearMonth={yearMonth}
               viewMode={viewMode}
-              dataSourceMode={dataSourceMode}
-              onDataChanged={() => fetchDashboardData(dataSourceMode)}
+              dataSourceMode={DATA_SOURCE}
+              onDataChanged={async () => {
+            await fetchDashboardData();
+          }}
             />
 
             <CoupleGovernanceModule
@@ -432,7 +438,7 @@ export default function NinhoDashboardPage() {
             <strong className="font-editorial text-sm italic text-ink">
               Ninho.
             </strong>{" "}
-            Planejamento Financeiro Editorial (Giovanni &amp; Maria Luiza)
+            Planejamento Financeiro (Giovanni &amp; Maria Luiza)
           </p>
           <p className="tabular-nums">
             Atualizado às{" "}
@@ -443,6 +449,17 @@ export default function NinhoDashboardPage() {
           </p>
         </div>
       </footer>
+
+      <OnboardingSetupModal
+        open={isSetupOpen && isLoaded}
+        payload={payload}
+        yearMonth={yearMonth}
+        isFirstAccess={isFirstAccess}
+        onClose={() => setIsSetupOpen(false)}
+        onDataChanged={async () => {
+          await fetchDashboardData();
+        }}
+      />
     </div>
   );
 }

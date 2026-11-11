@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import {
@@ -106,52 +106,54 @@ export function MacroAllocationChart({
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-1 items-center gap-5 md:grid-cols-12">
-          {/* Unclipped Neo-Brutalist Donut */}
-          <div className="relative h-52 w-full min-w-[176px] md:col-span-5">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                <Pie
-                  data={chartData}
-                  dataKey="valor"
-                  nameKey="label"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={52}
-                  outerRadius={74}
-                  paddingAngle={2}
-                  stroke="var(--border-strong)"
-                  strokeWidth={1.75}
-                  isAnimationActive={true}
-                  animationDuration={400}
-                >
-                  {chartData.map((entry) => (
-                    <Cell key={entry.id} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomDonutTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
+          {/* Neo-Brutalist Donut (rótulo central compacto, sem tocar o anel) */}
+          <div className="flex flex-col items-center md:col-span-5">
+            <div className="relative h-[216px] w-[216px] max-w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+                  <Pie
+                    data={chartData}
+                    dataKey="valor"
+                    nameKey="label"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={64}
+                    outerRadius={88}
+                    paddingAngle={2}
+                    stroke="var(--border-strong)"
+                    strokeWidth={1.75}
+                    isAnimationActive={true}
+                    animationDuration={400}
+                  >
+                    {chartData.map((entry) => (
+                      <Cell key={entry.id} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomDonutTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
 
-            {/* Center Typographic KPI Overlay */}
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-ink-muted">
-                Total Alocado
-              </span>
-              <span className="mt-0.5 text-sm font-bold tracking-[-0.03em] text-ink tabular-nums">
-                {formatBRL(totalAllocated)}
-              </span>
-              <span className="text-[10px] font-medium text-ink-secondary tabular-nums">
-                {allocation.rendaTotal > 0
-                  ? `${formatPct(
-                      allocation.percentualCustos +
-                        allocation.percentualInvestimentos +
-                        allocation.percentualProvisoes
-                    )} da renda`
-                  : "Sem renda"}
-              </span>
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+                <div className="flex max-w-[104px] flex-col items-center">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-ink-muted">
+                    Alocado
+                  </span>
+                  <span className="mt-0.5 text-[13px] font-extrabold leading-tight tracking-[-0.03em] text-ink tabular-nums">
+                    {formatBRL(totalAllocated)}
+                  </span>
+                </div>
+              </div>
             </div>
+            <span className="surface-subtle mt-2 rounded-full px-3 py-1 text-[10px] font-semibold text-ink-secondary tabular-nums">
+              {allocation.rendaTotal > 0
+                ? `${formatPct(
+                    allocation.percentualCustos +
+                      allocation.percentualInvestimentos +
+                      allocation.percentualProvisoes
+                  )} da renda`
+                : "Sem renda no mês"}
+            </span>
           </div>
-
           {/* Clean Divided Legend List */}
           <div className="divide-y divide-hairline md:col-span-7 max-h-60 overflow-y-auto pr-1.5">
             {chartData.map((item) => {

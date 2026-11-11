@@ -138,10 +138,11 @@ export function filterTransactionsByMonth(
   yearMonth: string,
   viewMode: ViewMode
 ): Transaction[] {
-  const prefix = yearMonth.trim().slice(0, 7);
+  const prefix = String(yearMonth ?? "").trim().slice(0, 7);
   return transactions.filter((tx) => {
-    const targetDate =
+    const rawTarget =
       viewMode === "CAIXA" ? tx.data_caixa : tx.data_competencia;
+    const targetDate = String(rawTarget ?? "").trim();
     return targetDate.startsWith(prefix);
   });
 }
@@ -279,7 +280,7 @@ export function calculateIncomeAllocation(
 }
 
 function isExplicitlyPersonalAccount(accountName: string): boolean {
-  const lower = accountName.trim().toLowerCase();
+  const lower = String(accountName ?? "").trim().toLowerCase();
   return (
     lower.includes("individual") ||
     lower.includes("pessoal") ||
@@ -290,7 +291,7 @@ function isExplicitlyPersonalAccount(accountName: string): boolean {
 }
 
 function isJointAccount(accountName: string): boolean {
-  const lower = accountName.trim().toLowerCase();
+  const lower = String(accountName ?? "").trim().toLowerCase();
   return lower.includes("conjunta") || lower.includes("conjunto");
 }
 
@@ -568,14 +569,14 @@ export function projectFutureInvoices(
   transactions: Transaction[],
   currentYearMonth: string
 ): FutureInvoiceMonthProjection[] {
-  const cutoff = currentYearMonth.trim().slice(0, 7);
+  const cutoff = String(currentYearMonth ?? "").trim().slice(0, 7);
   const grouped = new Map<string, Transaction[]>();
 
   for (const tx of transactions) {
     if (tx.tipo_fluxo !== "CUSTO") {
       continue;
     }
-    const txYearMonth = tx.data_caixa.trim().slice(0, 7);
+    const txYearMonth = String(tx.data_caixa ?? "").trim().slice(0, 7);
     if (txYearMonth > cutoff) {
       const list = grouped.get(txYearMonth) ?? [];
       list.push(tx);

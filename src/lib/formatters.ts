@@ -26,15 +26,17 @@ export function formatPct(value: number): string {
   return `${percentFormatter.format(safeVal)}%`;
 }
 
-export function formatShortDate(isoDate: string): string {
-  const parts = isoDate.trim().slice(0, 10).split("-");
+export function formatShortDate(isoDate: string | number | null | undefined): string {
+  const safeStr = String(isoDate ?? "").trim();
+  const parts = safeStr.slice(0, 10).split("-");
   if (parts.length === 3 && parts[1] && parts[2]) {
     return `${parts[2]}/${parts[1]}`;
   }
-  return isoDate;
+  return safeStr;
 }
 
-export function formatYearMonthLabel(yearMonth: string): string {
+export function formatYearMonthLabel(yearMonth: string | number | null | undefined): string {
+  const safeYm = String(yearMonth ?? "").trim();
   const monthNames: Record<string, string> = {
     "01": "Janeiro",
     "02": "Fevereiro",
@@ -49,13 +51,13 @@ export function formatYearMonthLabel(yearMonth: string): string {
     "11": "Novembro",
     "12": "Dezembro",
   };
-  const [yyyy, mm] = yearMonth.split("-");
-  if (!yyyy || !mm) return yearMonth;
+  const [yyyy, mm] = safeYm.split("-");
+  if (!yyyy || !mm) return safeYm;
   return `${monthNames[mm] ?? mm} ${yyyy}`;
 }
 
-export function getMonthNameByNumber(monthStr: string): string {
-  const normalized = monthStr.trim().padStart(2, "0");
+export function getMonthNameByNumber(monthStr: string | number | null | undefined): string {
+  const normalized = String(monthStr ?? "").trim().padStart(2, "0");
   const names: Record<string, string> = {
     "01": "Janeiro",
     "02": "Fevereiro",
@@ -70,7 +72,7 @@ export function getMonthNameByNumber(monthStr: string): string {
     "11": "Novembro",
     "12": "Dezembro",
   };
-  return names[normalized] ?? `Mês ${monthStr}`;
+  return names[normalized] ?? `Mês ${String(monthStr ?? "")}`;
 }
 
 // Paleta 100% Rosa / Pink / Lilás / Menta / Amarelo Neo-Brutalista (Zero Vermelho)
