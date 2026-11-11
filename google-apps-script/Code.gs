@@ -357,8 +357,173 @@ function setupDatabaseSheets() {
     cfgSheet.appendRow(["Maria Luiza", 400.0, 20, 27]);
   }
 
+  // 5. Aba Ativos_Investimento
+  let astSheet = ss.getSheetByName("Ativos_Investimento");
+  if (!astSheet) {
+    astSheet = ss.insertSheet("Ativos_Investimento");
+  }
+  if (astSheet.getLastRow() === 0) {
+    astSheet.appendRow([
+      "id",
+      "nome",
+      "tipo_ativo",
+      "rendimento",
+      "liquidez",
+      "instituicao",
+      "meta_vinculada",
+      "titular",
+      "valor_aportado",
+      "saldo_atual"
+    ]);
+    const initialAssets = [
+      [
+        "AST-001",
+        "Tesouro IPCA+ 2029 (Entrada Apto)",
+        "Tesouro Direto",
+        "IPCA + 6.45% a.a.",
+        "Vencimento",
+        "XP Investimentos",
+        "Casa",
+        "Conjunto",
+        39100.0,
+        42000.0
+      ],
+      [
+        "AST-002",
+        "CDB Liquidez Diária 102% CDI",
+        "CDB",
+        "102% do CDI",
+        "Diária",
+        "Nubank",
+        "Reserva de Emergência",
+        "Conjunto",
+        18500.0,
+        19620.0
+      ],
+      [
+        "AST-003",
+        "LCI Isenta 94% CDI (Férias)",
+        "LCI / LCA",
+        "94% do CDI (Isento IR)",
+        "90 dias",
+        "Banco Inter",
+        "Viagem",
+        "Conjunto",
+        6180.0,
+        6500.0
+      ],
+      [
+        "AST-004",
+        "Caixinha Turbo 110% CDI",
+        "Caixinha / Conta Remunerada",
+        "110% do CDI",
+        "Diária",
+        "Nubank",
+        "Estudos (Curso)",
+        "Maria Luiza",
+        3800.0,
+        4200.0
+      ],
+      [
+        "AST-005",
+        "FII HGLG11 + KNRI11 (Renda)",
+        "Fundo Imobiliário (FII)",
+        "DY ~9.8% a.a. + IPCA",
+        "D+2 Bolsa",
+        "BTG Pactual",
+        "Liberdade Financeira",
+        "Giovanni",
+        7500.0,
+        8140.0
+      ],
+      [
+        "AST-006",
+        "ETF IVV / WRLD11 (Global)",
+        "Ações / ETF",
+        "S&P 500 + Câmbio (~12% a.a.)",
+        "D+2 Bolsa",
+        "XP Investimentos",
+        "Liberdade Financeira",
+        "Conjunto",
+        4500.0,
+        5180.0
+      ]
+    ];
+    initialAssets.forEach(function (row) {
+      astSheet.appendRow(row);
+    });
+  }
+
+  // 6. Aba Valores_Receber
+  let recSheet = ss.getSheetByName("Valores_Receber");
+  if (!recSheet) {
+    recSheet = ss.insertSheet("Valores_Receber");
+  }
+  if (recSheet.getLastRow() === 0) {
+    recSheet.appendRow([
+      "id",
+      "descricao",
+      "pagador_origem",
+      "recebedor",
+      "valor_total",
+      "total_parcelas",
+      "parcelas_recebidas",
+      "proximo_vencimento",
+      "conta_destino",
+      "status"
+    ]);
+    const initialReceivables = [
+      [
+        "REC-001",
+        "Projeto Arquitetura & Interiores (Consultoria)",
+        "Cliente Studio A",
+        "Maria Luiza",
+        4500.0,
+        3,
+        1,
+        "2026-11-18",
+        "Nubank",
+        "ATIVO"
+      ],
+      [
+        "REC-002",
+        "Venda MacBook Air M1 Usado",
+        "Pedro Henrique (Amigo)",
+        "Giovanni",
+        3600.0,
+        4,
+        2,
+        "2026-11-15",
+        "Itaú",
+        "ATIVO"
+      ],
+      [
+        "REC-003",
+        "Reembolso Passagens Aéreas Família",
+        "Cunhado / Família",
+        "Conjunto",
+        1200.0,
+        2,
+        1,
+        "2026-11-25",
+        "Nubank",
+        "ATIVO"
+      ]
+    ];
+    initialReceivables.forEach(function (row) {
+      recSheet.appendRow(row);
+    });
+  }
+
   logEvent("info", "database_sheets_bootstrapped", "setupDatabaseSheets", correlationId, {
-    sheets: ["Transacoes", "Investimentos_Metas", "Provisoes_Anuais", "Config_Casal"]
+    sheets: [
+      "Transacoes",
+      "Investimentos_Metas",
+      "Provisoes_Anuais",
+      "Config_Casal",
+      "Ativos_Investimento",
+      "Valores_Receber"
+    ]
   });
 }
 
@@ -655,6 +820,252 @@ function recordTransactionRows(ss, rawPayload) {
 }
 
 /**
+ * Recalcula total_aportado e saldo_bruto_atual na aba Investimentos_Metas a partir dos ativos da aba Ativos_Investimento.
+ */
+function syncGoalsFromAssetsSheet(ss) {
+  const astSheet = ss.getSheetByName("Ativos_Investimento");
+  const invSheet = ss.getSheetByName("Investimentos_Metas");
+  if (!astSheet || !invSheet) return;
+
+  const assets = getSheetData(astSheet);
+  const goalValues = invSheet.getDataRange().getValues();
+  if (!goalValues || goalValues.length <= 1) return;
+
+  const headers = goalValues[0];
+  const idxNome = headers.indexOf("nome");
+  const idxAportado = headers.indexOf("total_aportado");
+  const idxSaldo = headers.indexOf("saldo_bruto_atual");
+  if (idxNome === -1 || idxAportado === -1 || idxSaldo === -1) return;
+
+  for (let r = 1; r < goalValues.length; r++) {
+    const goalName = String(goalValues[r][idxNome] || "").trim().toLowerCase();
+    const matchedAssets = assets.filter(function (a) {
+      const linked = String(a.meta_vinculada || "").trim().toLowerCase();
+      return (
+        linked === goalName ||
+        (goalName.indexOf("estudos") !== -1 && linked.indexOf("estudos") !== -1) ||
+        (goalName.indexOf("reserva") !== -1 && linked.indexOf("reserva") !== -1)
+      );
+    });
+    if (matchedAssets.length > 0) {
+      let sumAportado = 0;
+      let sumSaldo = 0;
+      matchedAssets.forEach(function (a) {
+        sumAportado += parseFloat(a.valor_aportado) || 0;
+        sumSaldo += parseFloat(a.saldo_atual) || 0;
+      });
+      invSheet.getRange(r + 1, idxAportado + 1).setValue(Math.round(sumAportado * 100) / 100);
+      invSheet.getRange(r + 1, idxSaldo + 1).setValue(Math.round(sumSaldo * 100) / 100);
+    }
+  }
+}
+
+/**
+ * Cria ou atualiza um ativo na aba Ativos_Investimento e sincroniza Investimentos_Metas.
+ */
+function upsertAssetRow(ss, assetPayload) {
+  let astSheet = ss.getSheetByName("Ativos_Investimento");
+  if (!astSheet) {
+    setupDatabaseSheets();
+    astSheet = ss.getSheetByName("Ativos_Investimento");
+  }
+  const assetId = String(assetPayload.id || "AST-" + new Date().getTime()).trim();
+  const rowData = [
+    sanitizeCell(assetId),
+    sanitizeCell(assetPayload.nome || "Ativo"),
+    sanitizeCell(assetPayload.tipo_ativo || "CDB"),
+    sanitizeCell(assetPayload.rendimento || "100% do CDI"),
+    sanitizeCell(assetPayload.liquidez || "Diária"),
+    sanitizeCell(assetPayload.instituicao || "Nubank"),
+    sanitizeCell(assetPayload.meta_vinculada || "Reserva de Emergência"),
+    sanitizeCell(assetPayload.titular || "Conjunto"),
+    Math.round((parseFloat(assetPayload.valor_aportado) || 0) * 100) / 100,
+    Math.round((parseFloat(assetPayload.saldo_atual) || 0) * 100) / 100
+  ];
+
+  const values = astSheet.getDataRange().getValues();
+  let updated = false;
+  for (let r = 1; r < values.length; r++) {
+    if (String(values[r][0]).trim() === assetId) {
+      astSheet.getRange(r + 1, 1, 1, rowData.length).setValues([rowData]);
+      updated = true;
+      break;
+    }
+  }
+  if (!updated) {
+    astSheet.appendRow(rowData);
+  }
+  syncGoalsFromAssetsSheet(ss);
+  return { id: assetId, updated: updated };
+}
+
+/**
+ * Remove um ativo da aba Ativos_Investimento pelo id e sincroniza Investimentos_Metas.
+ */
+function deleteRowById(sheet, targetId) {
+  if (!sheet || !targetId) return false;
+  const values = sheet.getDataRange().getValues();
+  for (let r = values.length - 1; r >= 1; r--) {
+    if (String(values[r][0]).trim() === String(targetId).trim()) {
+      sheet.deleteRow(r + 1);
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Cria ou atualiza um acordo a receber na aba Valores_Receber.
+ */
+function upsertReceivableRow(ss, recPayload) {
+  let recSheet = ss.getSheetByName("Valores_Receber");
+  if (!recSheet) {
+    setupDatabaseSheets();
+    recSheet = ss.getSheetByName("Valores_Receber");
+  }
+  const recId = String(recPayload.id || "REC-" + new Date().getTime()).trim();
+  const totalParcelas = Math.max(1, parseInt(recPayload.total_parcelas, 10) || 1);
+  const parcelasRecebidas = Math.max(0, parseInt(recPayload.parcelas_recebidas, 10) || 0);
+  const status = parcelasRecebidas >= totalParcelas ? "CONCLUIDO" : (recPayload.status || "ATIVO");
+
+  const rowData = [
+    sanitizeCell(recId),
+    sanitizeCell(recPayload.descricao || "Valor a Receber"),
+    sanitizeCell(recPayload.pagador_origem || "Origem"),
+    sanitizeCell(recPayload.recebedor || "Conjunto"),
+    Math.round((parseFloat(recPayload.valor_total) || 0) * 100) / 100,
+    totalParcelas,
+    parcelasRecebidas,
+    sanitizeCell(recPayload.proximo_vencimento || formatDateISO(new Date())),
+    sanitizeCell(recPayload.conta_destino || "Nubank"),
+    sanitizeCell(status)
+  ];
+
+  const values = recSheet.getDataRange().getValues();
+  let updated = false;
+  for (let r = 1; r < values.length; r++) {
+    if (String(values[r][0]).trim() === recId) {
+      recSheet.getRange(r + 1, 1, 1, rowData.length).setValues([rowData]);
+      updated = true;
+      break;
+    }
+  }
+  if (!updated) {
+    recSheet.appendRow(rowData);
+  }
+  return { id: recId, updated: updated };
+}
+
+/**
+ * Dá baixa na próxima parcela de um acordo em Valores_Receber e lança a entrada correspondente em Transacoes.
+ */
+function receiveInstallmentAction(ss, receivableId) {
+  const recSheet = ss.getSheetByName("Valores_Receber");
+  if (!recSheet) return { updated: false };
+
+  const values = recSheet.getDataRange().getValues();
+  if (values.length <= 1) return { updated: false };
+  const headers = values[0];
+  const idxId = headers.indexOf("id");
+  const idxDesc = headers.indexOf("descricao");
+  const idxPagador = headers.indexOf("pagador_origem");
+  const idxRecebedor = headers.indexOf("recebedor");
+  const idxValorTotal = headers.indexOf("valor_total");
+  const idxTotalParc = headers.indexOf("total_parcelas");
+  const idxParcRec = headers.indexOf("parcelas_recebidas");
+  const idxVenc = headers.indexOf("proximo_vencimento");
+  const idxConta = headers.indexOf("conta_destino");
+  const idxStatus = headers.indexOf("status");
+
+  for (let r = 1; r < values.length; r++) {
+    if (String(values[r][idxId]).trim() === String(receivableId).trim()) {
+      const totalParcelas = Math.max(1, parseInt(values[r][idxTotalParc], 10) || 1);
+      const currentReceived = Math.max(0, parseInt(values[r][idxParcRec], 10) || 0);
+      if (currentReceived >= totalParcelas) {
+        return { updated: false, alreadyCompleted: true };
+      }
+      const nextParcela = currentReceived + 1;
+      const valorTotal = parseFloat(values[r][idxValorTotal]) || 0;
+      const valorParcela = Math.round((valorTotal / totalParcelas) * 100) / 100;
+      const newStatus = nextParcela >= totalParcelas ? "CONCLUIDO" : "ATIVO";
+
+      recSheet.getRange(r + 1, idxParcRec + 1).setValue(nextParcela);
+      recSheet.getRange(r + 1, idxStatus + 1).setValue(newStatus);
+
+      const vencStr = formatDateISO(parseDateSafe(values[r][idxVenc]));
+      const recebedorRaw = String(values[r][idxRecebedor] || "Conjunto");
+      const paidBy = recebedorRaw === "Maria Luiza" ? "Maria Luiza" : "Giovanni";
+
+      recordTransactionRows(ss, {
+        data_competencia: vencStr,
+        data_caixa: vencStr,
+        tipo_fluxo: "RENDA",
+        categoria: "Salário / Renda",
+        descricao:
+          "Recebimento: " +
+          String(values[r][idxDesc]) +
+          " (" +
+          nextParcela +
+          "/" +
+          totalParcelas +
+          ") — " +
+          String(values[r][idxPagador]),
+        valor: valorParcela,
+        conta: String(values[r][idxConta] || "Nubank"),
+        pago_por: paidBy,
+        escopo: "CONJUNTO",
+        total_parcelas: 1
+      });
+
+      return { updated: true, nextParcela: nextParcela, status: newStatus };
+    }
+  }
+  return { updated: false };
+}
+
+/**
+ * Antecipa/quita a próxima parcela futura de um plano em Transacoes trazendo data_caixa para o mês de referência.
+ */
+function payNextInstallmentAction(ss, planId, referenceMonth) {
+  const txSheet = ss.getSheetByName("Transacoes");
+  if (!txSheet || !planId || !referenceMonth) return { updated: false };
+
+  const values = txSheet.getDataRange().getValues();
+  if (values.length <= 1) return { updated: false };
+  const headers = values[0];
+  const idxDataCaixa = headers.indexOf("data_caixa");
+  const idxDesc = headers.indexOf("descricao");
+  const idxParcAtual = headers.indexOf("parcela_atual");
+  const idxPlano = headers.indexOf("id_plano_parcelas");
+
+  let bestRowIndex = -1;
+  let bestParcelaNum = 999999;
+
+  for (let r = 1; r < values.length; r++) {
+    const rowPlan = String(values[r][idxPlano] || "").trim();
+    const rowCaixa = formatDateISO(parseDateSafe(values[r][idxDataCaixa]));
+    const rowMonth = rowCaixa.slice(0, 7);
+    const parcelaNum = parseInt(values[r][idxParcAtual], 10) || 1;
+
+    if (rowPlan === String(planId).trim() && rowMonth > String(referenceMonth).trim()) {
+      if (parcelaNum < bestParcelaNum) {
+        bestParcelaNum = parcelaNum;
+        bestRowIndex = r;
+      }
+    }
+  }
+
+  if (bestRowIndex === -1) return { updated: false };
+
+  const oldDesc = String(values[bestRowIndex][idxDesc] || "");
+  const newDesc = oldDesc.indexOf("[Quitada]") !== -1 ? oldDesc : oldDesc + " [Quitada]";
+  txSheet.getRange(bestRowIndex + 1, idxDataCaixa + 1).setValue(String(referenceMonth).trim() + "-15");
+  txSheet.getRange(bestRowIndex + 1, idxDesc + 1).setValue(sanitizeCell(newDesc));
+
+  return { updated: true, row: bestRowIndex + 1 };
+}
+
+/**
  * 1. ENDPOINT GET: Consumido pelo Next.js na Vercel para hidratar o Dashboard.
  * Suporta ?action=sync para processar a fila do Google Tasks antes de retornar os dados.
  */
@@ -675,18 +1086,26 @@ function doGet(e) {
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     let txSheet = ss.getSheetByName("Transacoes");
-    if (!txSheet) {
+    let astSheet = ss.getSheetByName("Ativos_Investimento");
+    let recSheet = ss.getSheetByName("Valores_Receber");
+    if (!txSheet || !astSheet || !recSheet) {
       setupDatabaseSheets();
       txSheet = ss.getSheetByName("Transacoes");
+      astSheet = ss.getSheetByName("Ativos_Investimento");
+      recSheet = ss.getSheetByName("Valores_Receber");
     }
 
     const transacoes = getSheetData(txSheet);
     const investimentos = getSheetData(ss.getSheetByName("Investimentos_Metas"));
     const provisoes = getSheetData(ss.getSheetByName("Provisoes_Anuais"));
     const config = getSheetData(ss.getSheetByName("Config_Casal"));
+    const ativos = getSheetData(astSheet);
+    const recebiveis = getSheetData(recSheet);
 
     logEvent("info", "sheet_snapshot_read", "doGet", correlationId, {
       transacoesCount: transacoes.length,
+      ativosCount: ativos.length,
+      recebiveisCount: recebiveis.length,
       syncedTasks: syncedTasks
     });
 
@@ -696,6 +1115,8 @@ function doGet(e) {
       investimentos: investimentos,
       provisoes: provisoes,
       config: config,
+      ativos: ativos,
+      recebiveis: recebiveis,
       syncedTasks: syncedTasks,
       timestamp: new Date().toISOString()
     };
@@ -733,8 +1154,10 @@ function doPost(e) {
       ).setMimeType(ContentService.MimeType.JSON);
     }
 
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
     if (bodyData.action === "SYNC_TASKS") {
-      const processedCount = syncTasksToSheetsInternal(SpreadsheetApp.getActiveSpreadsheet(), correlationId);
+      const processedCount = syncTasksToSheetsInternal(ss, correlationId);
       logEvent("info", "tasks_synced_via_post", "doPost", correlationId, {
         syncedTasks: processedCount
       });
@@ -743,7 +1166,56 @@ function doPost(e) {
       ).setMimeType(ContentService.MimeType.JSON);
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (bodyData.action === "UPSERT_ASSET" && bodyData.asset) {
+      const res = upsertAssetRow(ss, bodyData.asset);
+      return ContentService.createTextOutput(
+        JSON.stringify({ status: "SUCCESS", result: res })
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (bodyData.action === "DELETE_ASSET" && bodyData.assetId) {
+      const deleted = deleteRowById(ss.getSheetByName("Ativos_Investimento"), bodyData.assetId);
+      syncGoalsFromAssetsSheet(ss);
+      return ContentService.createTextOutput(
+        JSON.stringify({ status: "SUCCESS", deleted: deleted })
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (bodyData.action === "DELETE_TRANSACTION" && bodyData.transactionId) {
+      const deleted = deleteRowById(ss.getSheetByName("Transacoes"), bodyData.transactionId);
+      return ContentService.createTextOutput(
+        JSON.stringify({ status: "SUCCESS", deleted: deleted })
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (bodyData.action === "UPSERT_RECEIVABLE" && bodyData.receivable) {
+      const res = upsertReceivableRow(ss, bodyData.receivable);
+      return ContentService.createTextOutput(
+        JSON.stringify({ status: "SUCCESS", result: res })
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (bodyData.action === "RECEIVE_INSTALLMENT" && bodyData.receivableId) {
+      const res = receiveInstallmentAction(ss, bodyData.receivableId);
+      return ContentService.createTextOutput(
+        JSON.stringify({ status: "SUCCESS", result: res })
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (bodyData.action === "DELETE_RECEIVABLE" && bodyData.receivableId) {
+      const deleted = deleteRowById(ss.getSheetByName("Valores_Receber"), bodyData.receivableId);
+      return ContentService.createTextOutput(
+        JSON.stringify({ status: "SUCCESS", deleted: deleted })
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (bodyData.action === "PAY_NEXT_INSTALLMENT" && bodyData.planId) {
+      const res = payNextInstallmentAction(ss, bodyData.planId, bodyData.referenceMonth);
+      return ContentService.createTextOutput(
+        JSON.stringify({ status: "SUCCESS", result: res })
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+
     const normalizedPayload =
       bodyData.source === "MOBILE_NOTIFICATION"
         ? parseMobileNotificationPayload(bodyData)

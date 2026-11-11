@@ -113,6 +113,28 @@ function getConfiguredGasUrl(): string | null {
   }
 }
 
+async function forwardActionToGasIfLive(
+  gasUrl: string | null,
+  mode: "LIVE" | "DEMO" | "WORST_CASE" | undefined,
+  payload: Record<string, unknown>
+): Promise<void> {
+  if (!gasUrl || mode !== "LIVE") return;
+  try {
+    const secretToken = process.env.GAS_SECRET_TOKEN?.trim() ?? "";
+    await fetch(gasUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...payload,
+        token: secretToken,
+      }),
+      cache: "no-store",
+    });
+  } catch {
+    // Mantém resiliência caso o webhook demore ou oscile; o store local continua atualizado
+  }
+}
+
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const headers = buildSecurityHeaders();
   const { searchParams } = new URL(request.url);
@@ -278,6 +300,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     if (parsedAction.action === "UPSERT_ASSET") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "UPSERT_ASSET",
+        asset: parsedAction.asset,
+      });
       const updated = upsertDemoAsset(parsedAction.asset);
       return NextResponse.json(
         {
@@ -290,6 +316,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     if (parsedAction.action === "DELETE_ASSET") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "DELETE_ASSET",
+        assetId: parsedAction.id,
+      });
       const updated = deleteDemoAsset(parsedAction.id);
       return NextResponse.json(
         {
@@ -302,6 +332,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     if (parsedAction.action === "DELETE_TRANSACTION") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "DELETE_TRANSACTION",
+        transactionId: parsedAction.id,
+      });
       const updated = deleteDemoTransaction(parsedAction.id);
       return NextResponse.json(
         {
@@ -313,6 +347,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     if (parsedAction.action === "UPSERT_RECEIVABLE") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "UPSERT_RECEIVABLE",
+        receivable: parsedAction.receivable,
+      });
       const updated = upsertDemoReceivable(parsedAction.receivable);
       return NextResponse.json(
         {
@@ -324,6 +362,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     if (parsedAction.action === "RECEIVE_INSTALLMENT") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "RECEIVE_INSTALLMENT",
+        receivableId: parsedAction.id,
+      });
       const result = receiveNextInstallment(
         parsedAction.id,
         parsedAction.yearMonth ?? "2026-11"
@@ -340,6 +382,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     if (parsedAction.action === "DELETE_RECEIVABLE") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "DELETE_RECEIVABLE",
+        receivableId: parsedAction.id,
+      });
       const updated = deleteDemoReceivable(parsedAction.id);
       return NextResponse.json(
         {
@@ -351,6 +397,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     if (parsedAction.action === "PAY_NEXT_INSTALLMENT") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "PAY_NEXT_INSTALLMENT",
+        planId: parsedAction.planIdOrTxId,
+        referenceMonth: parsedAction.yearMonth ?? "2026-11",
+      });
       const result = payNextPayableInstallment(
         parsedAction.planIdOrTxId,
         parsedAction.yearMonth ?? "2026-11"

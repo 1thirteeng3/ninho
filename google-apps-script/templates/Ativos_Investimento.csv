@@ -1,0 +1,7 @@
+id,nome,tipo_ativo,rendimento,liquidez,instituicao,meta_vinculada,titular,valor_aportado,saldo_atual
+AST-001,Tesouro IPCA+ 2029 (Entrada Apto),Tesouro Direto,IPCA + 6.45% a.a.,Vencimento,XP Investimentos,Casa,Conjunto,39100.00,42000.00
+AST-002,CDB Liquidez Diária 102% CDI,CDB,102% do CDI,Diária,Nubank,Reserva de Emergência,Conjunto,18500.00,19620.00
+AST-003,LCI Isenta 94% CDI (Férias),LCI / LCA,94% do CDI (Isento IR),90 dias,Banco Inter,Viagem,Conjunto,6180.00,6500.00
+AST-004,Caixinha Turbo 110% CDI,Caixinha / Conta Remunerada,110% do CDI,Diária,Nubank,Estudos (Curso),Maria Luiza,3800.00,4200.00
+AST-005,FII HGLG11 + KNRI11 (Renda),Fundo Imobiliário (FII),DY ~9.8% a.a. + IPCA,D+2 Bolsa,BTG Pactual,Liberdade Financeira,Giovanni,7500.00,8140.00
+AST-006,ETF IVV / WRLD11 (Global),Ações / ETF,S&P 500 + Câmbio (~12% a.a.),D+2 Bolsa,XP Investimentos,Liberdade Financeira,Conjunto,4500.00,5180.00

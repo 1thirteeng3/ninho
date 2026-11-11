@@ -1,0 +1,4 @@
+id,descricao,pagador_origem,recebedor,valor_total,total_parcelas,parcelas_recebidas,proximo_vencimento,conta_destino,status
+REC-001,Projeto Arquitetura & Interiores (Consultoria),Cliente Studio A,Maria Luiza,4500.00,3,1,2026-11-18,Nubank,ATIVO
+REC-002,Venda MacBook Air M1 Usado,Pedro Henrique (Amigo),Giovanni,3600.00,4,2,2026-11-15,Itaú,ATIVO
+REC-003,Reembolso Passagens Aéreas Família,Cunhado / Família,Conjunto,1200.00,2,1,2026-11-25,Nubank,ATIVO
