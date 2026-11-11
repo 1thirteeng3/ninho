@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import {
@@ -24,7 +24,7 @@ interface CoupleGovernanceModuleProps {
 function MemberSettlementCard({ detail }: { detail: MemberSettlementDetail }) {
   const isGiovanni = detail.usuario === "Giovanni";
   const initials = isGiovanni ? "G" : "ML";
-  const barColor = isGiovanni ? "#BE123C" : "#9F1239";
+  const barColor = isGiovanni ? "#EC4899" : "#C084FC";
 
   const remainingRatioPct =
     detail.cotaMensal > 0
@@ -79,7 +79,7 @@ function MemberSettlementCard({ detail }: { detail: MemberSettlementDetail }) {
 
           <div className="flex items-center justify-between py-2 text-ink-secondary">
             <span>Usado na conta do casal</span>
-            <span className="font-medium text-[#BE123C] dark:text-rose-400">
+            <span className="font-medium text-[#EC4899] dark:text-rose-400">
               -{formatBRL(detail.gastosIndividuaisEmConjunta)}
             </span>
           </div>

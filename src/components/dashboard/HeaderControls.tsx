@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState } from "react";
 import {
@@ -78,45 +78,45 @@ export function HeaderControls({
 
   return (
     <header
-      className="sticky top-0 z-30 border-b border-hairline backdrop-blur-md transition-colors"
+      className="sticky top-0 z-30 border-b-2 border-[var(--border-strong)] backdrop-blur-md transition-colors"
       style={{
         backgroundColor:
           theme === "dark"
-            ? "rgba(17, 11, 14, 0.88)"
-            : "rgba(250, 245, 244, 0.88)",
+            ? "rgba(22, 11, 18, 0.94)"
+            : "rgba(255, 244, 249, 0.94)",
       }}
     >
       <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          {/* Left: Editorial Brand Identity */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <h1 className="font-editorial text-2xl sm:text-[28px] italic tracking-tight text-ink leading-none select-none">
-                Ninho
+          {/* Left: Editorial Neo-Brutalist Brand Identity */}
+          <div className="flex items-center justify-between gap-3 shrink-0">
+            <div className="flex items-center gap-3">
+              <h1 className="font-editorial inline-flex items-baseline whitespace-nowrap text-2xl sm:text-[30px] italic tracking-tight text-ink leading-none select-none">
+                <span>Ninho</span>
                 <span
-                  className="inline-block ml-0.5 not-italic"
-                  style={{ color: "var(--accent-primary)" }}
+                  className="ml-0.5 not-italic font-sans font-black"
+                  style={{ color: "var(--accent-vivid)" }}
                 >
                   .
                 </span>
               </h1>
 
               <span
-                className="h-4 w-px shrink-0"
+                className="h-5 w-[2px] shrink-0"
                 style={{ backgroundColor: "var(--border-strong)" }}
                 aria-hidden="true"
               />
 
-              <div className="flex items-center gap-2 min-w-0">
-                <p className="truncate text-xs sm:text-sm font-medium text-ink-secondary">
+              <div className="flex items-center gap-2 shrink-0">
+                <p className="whitespace-nowrap text-xs sm:text-sm font-bold text-ink">
                   Giovanni &amp; Maria Luiza
                 </p>
                 <span
-                  className="inline-flex h-2 w-2 shrink-0 rounded-full"
+                  className="inline-flex h-2.5 w-2.5 shrink-0 rounded-full border border-[#1F0D18]"
                   style={{
                     backgroundColor: isConnectedToSheets
-                      ? "#0F766E"
-                      : "var(--accent-primary)",
+                      ? "#10B981"
+                      : "var(--accent-vivid)",
                   }}
                   title={
                     isConnectedToSheets
@@ -312,7 +312,7 @@ export function HeaderControls({
               >
                 {theme === "light" ? (
                   <>
-                    <Moon className="h-3.5 w-3.5 text-[#BE123C]" />
+                    <Moon className="h-3.5 w-3.5 text-[#EC4899]" />
                     <span className="hidden xl:inline">Velvet</span>
                   </>
                 ) : (

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo } from "react";
 import {
@@ -118,20 +118,20 @@ export function KpiSummaryRow({
         <article className="flex flex-col justify-between p-5 min-w-0">
           <div>
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-secondary">
+              <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-secondary">
                 Gastos do Mês
               </p>
-              <span className="text-xs font-medium text-[#BE123C] tabular-nums">
+              <span className="rounded-full border border-[#1F0D18] bg-[#FFC9E3] px-2 py-0.5 text-[11px] font-bold text-[#831843] tabular-nums">
                 {allocation.rendaTotal > 0
                   ? `${formatPct(allocation.percentualCustos)} da renda`
                   : "Sem renda"}
               </span>
             </div>
-            <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-ink tabular-nums truncate">
+            <p className="mt-2 text-3xl font-bold tracking-[-0.03em] text-ink tabular-nums truncate">
               {formatBRL(allocation.custosTotal)}
             </p>
           </div>
-          <p className="mt-3 text-xs text-ink-secondary truncate">
+          <p className="mt-3 text-xs font-medium text-ink-secondary truncate">
             Despesas fixas, cartões e dia a dia
           </p>
         </article>
@@ -140,18 +140,18 @@ export function KpiSummaryRow({
         <article className="flex flex-col justify-between p-5 min-w-0">
           <div>
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-secondary">
+              <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-secondary">
                 Guardado p/ o Futuro
               </p>
-              <span className="text-xs font-medium text-[#9F1239] dark:text-[#FB7185] tabular-nums">
+              <span className="rounded-full border border-[#1F0D18] bg-[#E9D5FF] px-2 py-0.5 text-[11px] font-bold text-[#4C1D95] tabular-nums">
                 {formatPct(taxaPoupancaPct)} da renda
               </span>
             </div>
-            <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-ink tabular-nums truncate">
+            <p className="mt-2 text-3xl font-bold tracking-[-0.03em] text-ink tabular-nums truncate">
               {formatBRL(totalPoupado)}
             </p>
           </div>
-          <p className="mt-3 text-xs text-ink-secondary tabular-nums truncate">
+          <p className="mt-3 text-xs font-medium text-ink-secondary tabular-nums truncate">
             Metas {formatBRL(allocation.investimentosTotal)} · Reserva Anual{" "}
             {formatBRL(allocation.provisoesTotal)}
           </p>
@@ -161,24 +161,24 @@ export function KpiSummaryRow({
         <article className="flex flex-col justify-between p-5 min-w-0">
           <div>
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-secondary">
+              <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-secondary">
                 Sobra Livre na Conta
               </p>
-              <span className="text-[11px] font-medium text-ink-muted">
+              <span className="text-[11px] font-semibold text-ink-muted">
                 {viewMode === "CAIXA" ? "Fatura do Mês" : "Data da Compra"}
               </span>
             </div>
             <p
-              className={`mt-2 text-3xl font-semibold tracking-[-0.03em] tabular-nums truncate ${
+              className={`mt-2 text-3xl font-bold tracking-[-0.03em] tabular-nums truncate ${
                 allocation.saldoResidual >= 0
-                  ? "text-[#0F766E] dark:text-emerald-400"
+                  ? "text-[#059669] dark:text-emerald-400"
                   : "text-amber-600 dark:text-amber-400"
               }`}
             >
               {formatBRL(allocation.saldoResidual, true)}
             </p>
           </div>
-          <p className="mt-3 text-xs text-ink-secondary truncate">
+          <p className="mt-3 text-xs font-medium text-ink-secondary truncate">
             {allocation.saldoResidual >= 0
               ? "Disponível livre na conta conjunta"
               : "Coberto pela reserva acumulada"}
@@ -186,58 +186,58 @@ export function KpiSummaryRow({
         </article>
       </div>
 
-      {/* Apple Card / Apple Storage Continuous Balance Bar Footer */}
-      <div className="border-t border-hairline bg-[var(--bg-subtle)]/50 px-5 py-3">
+      {/* Neo-Brutalist Continuous Pink Balance Bar Footer */}
+      <div className="border-t-2 border-[var(--border-strong)] bg-[var(--bg-subtle)] px-5 py-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-[11px] font-medium text-ink-secondary">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-ink">
             Composição da renda no mês
           </span>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-ink-secondary tabular-nums">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-semibold text-ink-secondary tabular-nums">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-[#BE123C]" />
+              <span className="h-2.5 w-2.5 rounded-full border border-[#1F0D18] bg-[#FF3B9A]" />
               Gastos ({formatPct(allocation.percentualCustos)})
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-[#9F1239]" />
+              <span className="h-2.5 w-2.5 rounded-full border border-[#1F0D18] bg-[#C084FC]" />
               Investimentos ({formatPct(allocation.percentualInvestimentos)})
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-[#D97706]" />
+              <span className="h-2.5 w-2.5 rounded-full border border-[#1F0D18] bg-[#FBBF24]" />
               Reserva Anual ({formatPct(allocation.percentualProvisoes)})
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-[#0F766E]" />
+              <span className="h-2.5 w-2.5 rounded-full border border-[#1F0D18] bg-[#10B981]" />
               Sobra Livre ({formatBRL(Math.max(0, allocation.saldoResidual))})
             </span>
           </div>
         </div>
 
-        <div className="mt-2 h-2 w-full rounded-full overflow-hidden flex gap-0.5 bg-[var(--border-hairline)]">
+        <div className="mt-2 h-3 w-full rounded-full border-[1.5px] border-[#1F0D18] overflow-hidden flex bg-white dark:bg-[#160B12]">
           {compositionSlices.gastosPct > 0 && (
             <div
-              className="h-full bg-[#BE123C] transition-all duration-300"
+              className="h-full bg-[#FF3B9A] border-r border-[#1F0D18] last:border-r-0 transition-all duration-300"
               style={{ width: `${compositionSlices.gastosPct}%` }}
               title={`Gastos: ${formatBRL(allocation.custosTotal)}`}
             />
           )}
           {compositionSlices.investPct > 0 && (
             <div
-              className="h-full bg-[#9F1239] transition-all duration-300"
+              className="h-full bg-[#C084FC] border-r border-[#1F0D18] last:border-r-0 transition-all duration-300"
               style={{ width: `${compositionSlices.investPct}%` }}
               title={`Investimentos: ${formatBRL(allocation.investimentosTotal)}`}
             />
           )}
           {compositionSlices.reservaPct > 0 && (
             <div
-              className="h-full bg-[#D97706] transition-all duration-300"
+              className="h-full bg-[#FBBF24] border-r border-[#1F0D18] last:border-r-0 transition-all duration-300"
               style={{ width: `${compositionSlices.reservaPct}%` }}
               title={`Reserva Anual: ${formatBRL(allocation.provisoesTotal)}`}
             />
           )}
           {compositionSlices.sobraPct > 0 && (
             <div
-              className="h-full bg-[#0F766E] transition-all duration-300"
+              className="h-full bg-[#10B981] transition-all duration-300"
               style={{ width: `${compositionSlices.sobraPct}%` }}
               title={`Sobra Livre: ${formatBRL(allocation.saldoResidual)}`}
             />

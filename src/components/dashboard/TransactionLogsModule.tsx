@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo, useState } from "react";
 import { Search, Trash2, X } from "lucide-react";
@@ -153,13 +153,13 @@ export function TransactionLogsModule({
           </div>
           <div>
             <span className="text-ink-muted">Saiu: </span>
-            <strong className="font-semibold text-[#BE123C] dark:text-rose-400">
+            <strong className="font-semibold text-[#EC4899] dark:text-rose-400">
               -{formatBRL(totals.saidas)}
             </strong>
           </div>
           <div>
             <span className="text-ink-muted">Guardado: </span>
-            <strong className="font-semibold text-[#9F1239] dark:text-[#FB7185]">
+            <strong className="font-semibold text-[#C084FC] dark:text-[#FB7185]">
               {formatBRL(totals.guardado)}
             </strong>
           </div>
@@ -175,7 +175,7 @@ export function TransactionLogsModule({
             onClick={() => setFlowFilter("ALL")}
             className={`pressable rounded-full px-3 py-1 text-xs font-medium transition-all ${
               flowFilter === "ALL"
-                ? "bg-[#BE123C] text-white font-semibold"
+                ? "bg-[#EC4899] text-white font-semibold"
                 : "surface-card text-ink-secondary hover:text-ink"
             }`}
           >
@@ -197,7 +197,7 @@ export function TransactionLogsModule({
             onClick={() => setFlowFilter("SAIDA")}
             className={`pressable rounded-full px-3 py-1 text-xs font-medium transition-all ${
               flowFilter === "SAIDA"
-                ? "bg-[#BE123C] text-white font-semibold"
+                ? "bg-[#EC4899] text-white font-semibold"
                 : "surface-card text-ink-secondary hover:text-ink"
             }`}
           >
@@ -208,7 +208,7 @@ export function TransactionLogsModule({
             onClick={() => setFlowFilter("GUARDADO")}
             className={`pressable rounded-full px-3 py-1 text-xs font-medium transition-all ${
               flowFilter === "GUARDADO"
-                ? "bg-[#9F1239] text-white font-semibold"
+                ? "bg-[#C084FC] text-white font-semibold"
                 : "surface-card text-ink-secondary hover:text-ink"
             }`}
           >
@@ -289,7 +289,7 @@ export function TransactionLogsModule({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar descrição, conta..."
-              className="surface-card w-full rounded-full py-1.5 pl-8 pr-7 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none"
+              className="surface-card w-full rounded-full py-1.5 pl-8 pr-7 text-xs text-ink placeholder:text-ink-muted focus:border-[#EC4899] focus:outline-none"
             />
             {searchQuery && (
               <button
@@ -333,8 +333,8 @@ export function TransactionLogsModule({
                       isIncome
                         ? "bg-teal-500/10 text-[#0F766E] dark:text-emerald-300"
                         : isInvest
-                          ? "bg-rose-900/10 text-[#9F1239] dark:text-[#FB7185]"
-                          : "bg-rose-500/10 text-[#BE123C] dark:text-rose-300"
+                          ? "bg-rose-900/10 text-[#C084FC] dark:text-[#FB7185]"
+                          : "bg-rose-500/10 text-[#EC4899] dark:text-rose-300"
                     }`}
                     aria-hidden="true"
                   >
@@ -371,7 +371,7 @@ export function TransactionLogsModule({
                       isIncome
                         ? "text-[#0F766E] dark:text-emerald-400"
                         : isInvest
-                          ? "text-[#9F1239] dark:text-[#FB7185]"
+                          ? "text-[#C084FC] dark:text-[#FB7185]"
                           : "text-ink"
                     }`}
                   >
@@ -385,7 +385,7 @@ export function TransactionLogsModule({
                   <button
                     type="button"
                     onClick={() => handleDeleteTransaction(tx)}
-                    className="pressable rounded-lg p-1.5 text-ink-muted opacity-70 transition-opacity hover:bg-rose-500/10 hover:text-[#BE123C] group-hover:opacity-100"
+                    className="pressable rounded-lg p-1.5 text-ink-muted opacity-70 transition-opacity hover:bg-rose-500/10 hover:text-[#EC4899] group-hover:opacity-100"
                     title="Apagar este lançamento do histórico"
                     aria-label={`Excluir ${tx.descricao}`}
                   >

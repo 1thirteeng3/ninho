@@ -73,20 +73,21 @@ export function getMonthNameByNumber(monthStr: string): string {
   return names[normalized] ?? `Mês ${monthStr}`;
 }
 
+// Paleta 100% Rosa / Pink / Lilás / Menta / Amarelo Neo-Brutalista (Zero Vermelho)
 export const CATEGORY_COLORS: Record<Category, string> = {
-  "Habitação & Fixos": "#BE123C", // Berry / Rose 700
-  Carro: "#E11D48", // Rose 600
-  Saúde: "#F43F5E", // Rose 500
-  "Estudos (Custeio)": "#9F1239", // Plum Rose 800
-  Lazer: "#FB7185", // Coral Rose 400
-  "Cota Individual": "#FDA4AF", // Blush Rose 300
-  "Fundo Anual (Carro/Impostos)": "#D97706", // Terracotta / Amber 600
-  Casa: "#9F1239", // Deep Berry
-  "Estudos (Fundo Futuro)": "#BE123C", // Rose 700
-  Viagem: "#E11D48", // Rose 600
-  "Reserva & Patrimônio": "#0F766E", // Sage Teal 700
-  "Salário / Renda": "#0F766E", // Sage Teal 700
-  "Ajuste de Caixa": "#9A828A", // Muted Plum
+  "Habitação & Fixos": "#FF3B9A", // Vibrant Hot Pink
+  Carro: "#EC4899", // Bubblegum Pink 500
+  Saúde: "#F472B6", // Flamingo Pink 400
+  "Estudos (Custeio)": "#C084FC", // Orchid Lavender 400
+  Lazer: "#FF85C0", // Candy Pink
+  "Cota Individual": "#F9A8D4", // Pastel Sakura Pink 300
+  "Fundo Anual (Carro/Impostos)": "#FBBF24", // Neo-Brutalist Butter Gold
+  Casa: "#EC4899", // Pink 500
+  "Estudos (Fundo Futuro)": "#C084FC", // Lavender Pink
+  Viagem: "#F472B6", // Flamingo Pink 400
+  "Reserva & Patrimônio": "#10B981", // Neo-Mint
+  "Salário / Renda": "#10B981", // Neo-Mint
+  "Ajuste de Caixa": "#A87D95", // Muted Mauve
 };
 
 export function getFlowBadgeStyle(flow: FlowType): {
@@ -98,25 +99,25 @@ export function getFlowBadgeStyle(flow: FlowType): {
       return {
         label: "↑ Entrada",
         className:
-          "border-teal-600/25 bg-teal-500/10 text-teal-800 dark:text-teal-300",
+          "border-[#1F0D18] bg-[#A7F3D0] text-[#064E3B] dark:bg-emerald-500/20 dark:text-emerald-200",
       };
     case "INVESTIMENTO":
       return {
         label: "✦ Investimento",
         className:
-          "border-rose-800/25 bg-rose-900/10 text-rose-900 dark:text-rose-200",
+          "border-[#1F0D18] bg-[#E9D5FF] text-[#4C1D95] dark:bg-purple-500/20 dark:text-purple-200",
       };
     case "PROVISAO_ANUAL":
       return {
         label: "✦ Reserva Anual",
         className:
-          "border-amber-600/25 bg-amber-500/10 text-amber-800 dark:text-amber-300",
+          "border-[#1F0D18] bg-[#FDE68A] text-[#78350F] dark:bg-amber-500/20 dark:text-amber-200",
       };
     case "CUSTO":
       return {
         label: "↓ Saída",
         className:
-          "border-rose-600/25 bg-rose-500/10 text-rose-800 dark:text-rose-200",
+          "border-[#1F0D18] bg-[#FFC9E3] text-[#831843] dark:bg-pink-500/20 dark:text-pink-200",
       };
     case "AJUSTE":
       return {
@@ -128,8 +129,8 @@ export function getFlowBadgeStyle(flow: FlowType): {
 
 export function getMemberBadgeStyle(member: Member): string {
   return member === "Giovanni"
-    ? "border-rose-700/20 bg-rose-600/10 text-rose-900 dark:text-rose-200"
-    : "border-pink-600/20 bg-pink-500/10 text-pink-900 dark:text-pink-200";
+    ? "border-[#1F0D18] bg-[#FBCFE8] text-[#831843] dark:bg-pink-500/25 dark:text-pink-200"
+    : "border-[#1F0D18] bg-[#F5D0FE] text-[#701A75] dark:bg-fuchsia-500/25 dark:text-fuchsia-200";
 }
 
 export function getScopeBadgeLabel(scope: Scope): {
@@ -146,13 +147,13 @@ export function getScopeBadgeLabel(scope: Scope): {
       return {
         label: "Pessoal · Giovanni",
         className:
-          "border-rose-700/20 bg-rose-600/10 text-rose-900 dark:text-rose-200",
+          "border-[#1F0D18] bg-[#FBCFE8] text-[#831843] dark:bg-pink-500/25 dark:text-pink-200",
       };
     case "INDIVIDUAL_MARIA_LUIZA":
       return {
         label: "Pessoal · Maria Luiza",
         className:
-          "border-pink-600/20 bg-pink-500/10 text-pink-900 dark:text-pink-200",
+          "border-[#1F0D18] bg-[#F5D0FE] text-[#701A75] dark:bg-fuchsia-500/25 dark:text-fuchsia-200",
       };
   }
 }

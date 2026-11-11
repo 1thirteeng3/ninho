@@ -269,10 +269,10 @@ export default function NinhoDashboardPage() {
           viewMode={viewMode}
         />
 
-        {/* Navegação Editorial por Abas de Contexto */}
+        {/* Navegação Neo-Brutalista por Abas de Contexto */}
         <nav
           aria-label="Navegação por contexto financeiro"
-          className="flex items-center gap-1.5 overflow-x-auto border-b border-hairline pb-3"
+          className="flex items-center gap-2 overflow-x-auto pb-2 pt-1"
         >
           {workspaceTabs.map((tab) => {
             const isActive = activeWorkspaceTab === tab.id;
@@ -281,19 +281,19 @@ export default function NinhoDashboardPage() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveWorkspaceTab(tab.id)}
-                className={`pressable inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium transition-all ${
+                className={`pressable inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs transition-all ${
                   isActive
-                    ? "bg-[#BE123C] text-white font-semibold shadow-2xs"
-                    : "surface-card text-ink-secondary hover:text-ink"
+                    ? "border-2 border-[#1F0D18] bg-[#FF3B9A] text-white font-bold shadow-[3px_3px_0px_#1F0D18]"
+                    : "surface-card text-ink font-semibold hover:bg-[#FFE4F2]"
                 }`}
               >
                 <span>{tab.label}</span>
                 {typeof tab.badge === "number" && (
                   <span
-                    className={`rounded-full px-1.5 py-0.2 text-[10px] font-semibold tabular-nums ${
+                    className={`rounded-full border border-[#1F0D18] px-1.5 py-0.2 text-[10px] font-bold tabular-nums ${
                       isActive
-                        ? "bg-white/20 text-white"
-                        : "bg-[var(--bg-subtle)] text-ink-secondary"
+                        ? "bg-white text-[#1F0D18]"
+                        : "bg-[#FFC9E3] text-[#1F0D18]"
                     }`}
                   >
                     {tab.badge}

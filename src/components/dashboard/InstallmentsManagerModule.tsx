@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo, useState } from "react";
 import { Check, CheckCircle2, Plus, Trash2, X } from "lucide-react";
@@ -457,7 +457,7 @@ export function InstallmentsManagerModule({
             <button
               type="button"
               onClick={() => setIsNewPayableOpen((prev) => !prev)}
-              className="pressable inline-flex items-center gap-1.5 rounded-full bg-[#BE123C] px-4 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-95"
+              className="pressable inline-flex items-center gap-1.5 rounded-full bg-[#EC4899] px-4 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-95"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Nova Compra Parcelada</span>
@@ -494,7 +494,7 @@ export function InstallmentsManagerModule({
                     value={payableDesc}
                     onChange={(e) => setPayableDesc(e.target.value)}
                     placeholder="Ex: Geladeira Inox, Passagens Aéreas..."
-                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none"
+                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#EC4899] focus:outline-none"
                   />
                 </div>
 
@@ -510,7 +510,7 @@ export function InstallmentsManagerModule({
                     value={payableTotal}
                     onChange={(e) => setPayableTotal(e.target.value)}
                     placeholder="Ex: 1800"
-                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none tabular-nums"
+                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#EC4899] focus:outline-none tabular-nums"
                   />
                 </div>
 
@@ -525,7 +525,7 @@ export function InstallmentsManagerModule({
                     required
                     value={payableCount}
                     onChange={(e) => setPayableCount(e.target.value)}
-                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#BE123C] focus:outline-none tabular-nums"
+                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#EC4899] focus:outline-none tabular-nums"
                   />
                 </div>
 
@@ -538,7 +538,7 @@ export function InstallmentsManagerModule({
                     onChange={(e) =>
                       setPayableCategory(e.target.value as Category)
                     }
-                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#BE123C] focus:outline-none"
+                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#EC4899] focus:outline-none"
                   >
                     {PURCHASE_CATEGORIES.map((c) => (
                       <option
@@ -565,14 +565,14 @@ export function InstallmentsManagerModule({
                       value={payableAccount}
                       onChange={(e) => setPayableAccount(e.target.value)}
                       placeholder="Nubank"
-                      className="surface-card w-1/2 rounded-xl px-2.5 py-2 text-xs text-ink focus:border-[#BE123C] focus:outline-none"
+                      className="surface-card w-1/2 rounded-xl px-2.5 py-2 text-xs text-ink focus:border-[#EC4899] focus:outline-none"
                     />
                     <select
                       value={payableMember}
                       onChange={(e) =>
                         setPayableMember(e.target.value as Member)
                       }
-                      className="surface-card w-1/2 rounded-xl px-2 py-2 text-xs text-ink focus:border-[#BE123C] focus:outline-none"
+                      className="surface-card w-1/2 rounded-xl px-2 py-2 text-xs text-ink focus:border-[#EC4899] focus:outline-none"
                     >
                       <option value="Giovanni">Giovanni</option>
                       <option value="Maria Luiza">Maria Luiza</option>
@@ -592,7 +592,7 @@ export function InstallmentsManagerModule({
                 <button
                   type="submit"
                   disabled={isSavingPayable}
-                  className="pressable inline-flex items-center gap-1.5 rounded-full bg-[#BE123C] px-4 py-1.5 text-xs font-semibold text-white"
+                  className="pressable inline-flex items-center gap-1.5 rounded-full bg-[#EC4899] px-4 py-1.5 text-xs font-semibold text-white"
                 >
                   <Check className="h-3.5 w-3.5" />
                   <span>
@@ -634,7 +634,7 @@ export function InstallmentsManagerModule({
                           className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold tabular-nums ${
                             isDone
                               ? "bg-teal-500/10 text-[#0F766E] dark:text-emerald-300"
-                              : "surface-rose-tint text-[#BE123C] dark:text-[#FB7185]"
+                              : "surface-rose-tint text-[#EC4899] dark:text-[#FB7185]"
                           }`}
                         >
                           {plan.paidCount} de {plan.totalParcelas} pagas
@@ -653,7 +653,7 @@ export function InstallmentsManagerModule({
                       {/* Thin Progress Bar (h-1.5) */}
                       <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--border-hairline)]">
                         <div
-                          className="h-full rounded-full bg-[#BE123C] transition-all duration-300"
+                          className="h-full rounded-full bg-[#EC4899] transition-all duration-300"
                           style={{ width: `${progressPct}%` }}
                         />
                       </div>
@@ -669,7 +669,7 @@ export function InstallmentsManagerModule({
                         </span>
                         <span>
                           Restante:{" "}
-                          <strong className="font-semibold text-[#BE123C] dark:text-rose-400">
+                          <strong className="font-semibold text-[#EC4899] dark:text-rose-400">
                             {formatBRL(plan.remainingAmount)}
                           </strong>
                         </span>
@@ -684,10 +684,10 @@ export function InstallmentsManagerModule({
                               plan.title
                             )
                           }
-                          className="pressable surface-card inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold text-ink hover:border-[#BE123C] hover:text-[#BE123C]"
+                          className="pressable surface-card inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold text-ink hover:border-[#EC4899] hover:text-[#EC4899]"
                           title="Adiantar a próxima parcela para a fatura atual"
                         >
-                          <CheckCircle2 className="h-3 w-3 text-[#BE123C]" />
+                          <CheckCircle2 className="h-3 w-3 text-[#EC4899]" />
                           <span>Adiantar parcela</span>
                         </button>
                       )}
@@ -718,7 +718,7 @@ export function InstallmentsManagerModule({
                         {proj.installments.length} parc.
                       </span>
                     </div>
-                    <p className="mt-1.5 text-base font-semibold tracking-[-0.02em] text-[#BE123C] dark:text-rose-400">
+                    <p className="mt-1.5 text-base font-semibold tracking-[-0.02em] text-[#EC4899] dark:text-rose-400">
                       {formatBRL(proj.totalCommitted)}
                     </p>
                   </div>
@@ -1017,7 +1017,7 @@ export function InstallmentsManagerModule({
                         <button
                           type="button"
                           onClick={() => handleDeleteReceivable(rec)}
-                          className="pressable rounded-lg p-1.5 text-ink-muted hover:bg-rose-500/10 hover:text-[#BE123C]"
+                          className="pressable rounded-lg p-1.5 text-ink-muted hover:bg-rose-500/10 hover:text-[#EC4899]"
                           title="Excluir registro"
                         >
                           <Trash2 className="h-3.5 w-3.5" />

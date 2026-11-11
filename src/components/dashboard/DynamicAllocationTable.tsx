@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Filter } from "lucide-react";
@@ -81,7 +81,7 @@ export function DynamicAllocationTable({
             <button
               type="button"
               onClick={() => setSelectedCategoryFilter("ALL")}
-              className="pressable surface-rose-tint inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium text-[#BE123C]"
+              className="pressable surface-rose-tint inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium text-[#EC4899]"
             >
               <Filter className="h-3 w-3" />
               <span>{selectedCategoryFilter} ×</span>
@@ -124,14 +124,14 @@ export function DynamicAllocationTable({
               <td className="px-4 py-3 text-right font-semibold text-ink tabular-nums">
                 {formatBRL(allocation.custosTotal)}
               </td>
-              <td className="px-4 py-3 text-right font-semibold text-[#BE123C] tabular-nums">
+              <td className="px-4 py-3 text-right font-semibold text-[#EC4899] tabular-nums">
                 {formatPct(allocation.percentualCustos)}
               </td>
               <td className="py-3 pl-4 pr-6">
                 <div className="flex items-center gap-3">
                   <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-[var(--bg-subtle)]">
                     <div
-                      className="h-full rounded-full bg-[#BE123C] transition-all duration-300"
+                      className="h-full rounded-full bg-[#EC4899] transition-all duration-300"
                       style={{
                         width: `${Math.min(
                           100,
@@ -149,7 +149,7 @@ export function DynamicAllocationTable({
 
             {expandedGroups.custos &&
               allocation.categoriasCusto.map((item) => {
-                const color = CATEGORY_COLORS[item.categoria] ?? "#BE123C";
+                const color = CATEGORY_COLORS[item.categoria] ?? "#EC4899";
                 const barWidth = Math.min(
                   100,
                   Math.max(0, item.percentualRenda)
@@ -296,14 +296,14 @@ export function DynamicAllocationTable({
               <td className="px-4 py-3 text-right font-semibold text-ink tabular-nums">
                 {formatBRL(allocation.investimentosTotal)}
               </td>
-              <td className="px-4 py-3 text-right font-semibold text-[#9F1239] dark:text-[#FB7185] tabular-nums">
+              <td className="px-4 py-3 text-right font-semibold text-[#C084FC] dark:text-[#FB7185] tabular-nums">
                 {formatPct(allocation.percentualInvestimentos)}
               </td>
               <td className="py-3 pl-4 pr-6">
                 <div className="flex items-center gap-3">
                   <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-[var(--bg-subtle)]">
                     <div
-                      className="h-full rounded-full bg-[#9F1239] transition-all duration-300"
+                      className="h-full rounded-full bg-[#C084FC] transition-all duration-300"
                       style={{
                         width: `${Math.min(
                           100,
@@ -332,7 +332,7 @@ export function DynamicAllocationTable({
                     : 0;
                 const clampedGoalPct = Math.min(100, Math.max(0, goalPct));
                 const color =
-                  CATEGORY_COLORS[invItem.categoria as Category] ?? "#9F1239";
+                  CATEGORY_COLORS[invItem.categoria as Category] ?? "#C084FC";
                 const isSelected =
                   selectedCategoryFilter === invItem.categoria;
 

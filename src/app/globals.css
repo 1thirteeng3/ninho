@@ -3,36 +3,40 @@
 :root,
 [data-theme="light"] {
   color-scheme: light;
-  --bg-canvas: #FAF5F4;
+  --bg-canvas: #FFF4F9;
   --bg-surface: #FFFFFF;
-  --bg-subtle: #F5ECEA;
-  --bg-rose-tint: #FFF1F3;
-  --text-primary: #1D1115;
-  --text-secondary: #685259;
-  --text-muted: #9A828A;
-  --border-hairline: #EADBD8;
-  --border-strong: #DBC3BF;
-  --accent-primary: #BE123C;
-  --accent-soft: #FFE4E8;
-  --shadow-card: 0 1px 2px rgba(29, 17, 21, 0.03), 0 8px 24px -6px rgba(136, 19, 55, 0.05);
+  --bg-subtle: #FFE4F2;
+  --bg-rose-tint: #FFF0F7;
+  --text-primary: #1F0D18;
+  --text-secondary: #5C3A4D;
+  --text-muted: #8E657C;
+  --border-hairline: rgba(31, 13, 24, 0.16);
+  --border-strong: #1F0D18;
+  --accent-primary: #EC4899;
+  --accent-vivid: #FF3B9A;
+  --accent-soft: #FFC9E3;
+  --shadow-card: 4px 4px 0px #1F0D18;
+  --shadow-sm: 2px 2px 0px #1F0D18;
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg-canvas: #110B0E;
-  --bg-surface: #1A1116;
-  --bg-subtle: #24181F;
-  --bg-rose-tint: rgba(244, 114, 182, 0.09);
-  --text-primary: #FAF2F4;
-  --text-secondary: #C4ACB4;
-  --text-muted: #876E77;
-  --border-hairline: rgba(255, 228, 232, 0.09);
-  --border-strong: rgba(255, 228, 232, 0.18);
-  --accent-primary: #FB7185;
-  --accent-soft: rgba(251, 113, 133, 0.14);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -8px rgba(0, 0, 0, 0.45);
+  --bg-canvas: #160B12;
+  --bg-surface: #22121C;
+  --bg-subtle: #311A29;
+  --bg-rose-tint: rgba(244, 114, 182, 0.14);
+  --text-primary: #FFF5FA;
+  --text-secondary: #E2BED1;
+  --text-muted: #A87D95;
+  --border-hairline: rgba(255, 194, 226, 0.18);
+  --border-strong: #FF70B8;
+  --accent-primary: #F472B6;
+  --accent-vivid: #FF4DA6;
+  --accent-soft: rgba(244, 114, 182, 0.22);
+  --shadow-card: 4px 4px 0px #FF4DA6;
+  --shadow-sm: 2px 2px 0px #FF4DA6;
 }
 
 html {
@@ -48,6 +52,8 @@ html {
 body {
   min-height: 100svh;
   background-color: var(--bg-canvas);
+  background-image: radial-gradient(rgba(236, 72, 153, 0.14) 1px, transparent 1px);
+  background-size: 20px 20px;
   color: var(--text-primary);
   overscroll-behavior-y: none;
   padding-top: env(safe-area-inset-top, 0px);
@@ -59,21 +65,23 @@ body {
     color 200ms var(--ease-out-quart);
 }
 
-/* Semantic Design System Utilities */
+/* Neo-Brutalist Pink Semantic Surfaces */
 .surface-card {
   background-color: var(--bg-surface);
-  border: 1px solid var(--border-hairline);
+  border: 2px solid var(--border-strong);
   box-shadow: var(--shadow-card);
 }
 
 .surface-subtle {
   background-color: var(--bg-subtle);
-  border: 1px solid var(--border-hairline);
+  border: 1.5px solid var(--border-strong);
+  box-shadow: var(--shadow-sm);
 }
 
 .surface-rose-tint {
   background-color: var(--bg-rose-tint);
-  border: 1px solid var(--border-hairline);
+  border: 1.5px solid var(--border-strong);
+  box-shadow: var(--shadow-sm);
 }
 
 .font-editorial {
@@ -110,7 +118,7 @@ body {
   font-feature-settings: "tnum" 1, "zero" 1;
 }
 
-/* Tactile press feedback for interactive controls */
+/* Neo-Brutalist tactile press feedback */
 button,
 [role="button"],
 select {
@@ -120,15 +128,22 @@ select {
 
 .pressable {
   transition:
-    transform 120ms var(--ease-out-quart),
-    background-color 150ms var(--ease-out-quart),
-    border-color 150ms var(--ease-out-quart),
-    color 150ms var(--ease-out-quart),
-    opacity 150ms var(--ease-out-quart);
+    transform 110ms var(--ease-out-quart),
+    box-shadow 110ms var(--ease-out-quart),
+    background-color 140ms var(--ease-out-quart),
+    border-color 140ms var(--ease-out-quart),
+    color 140ms var(--ease-out-quart);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pressable:hover:not(:disabled) {
+    transform: translate(-1px, -1px);
+  }
 }
 
 .pressable:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px var(--border-strong) !important;
 }
 
 /* Choreographed entrance animation for dashboard sections */
@@ -144,7 +159,7 @@ select {
 }
 
 .animate-enter {
-  animation: fadeSlideUp 260ms var(--ease-out-expo) both;
+  animation: fadeSlideUp 240ms var(--ease-out-expo) both;
 }
 
 .delay-1 {
@@ -170,12 +185,13 @@ select {
     scroll-behavior: auto !important;
   }
 
-  .pressable:active:not(:disabled) {
+  .pressable:active:not(:disabled),
+  .pressable:hover:not(:disabled) {
     transform: none;
   }
 }
 
-/* Subtle custom scrollbar in rose-porcelain tones */
+/* Custom Neo-Brutalist scrollbar in pink tones */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -186,10 +202,6 @@ select {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
   background: var(--accent-primary);
+  border-radius: 9999px;
 }

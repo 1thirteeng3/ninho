@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo, useState } from "react";
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
@@ -233,7 +233,7 @@ export function InvestmentAssetsManager({
         <button
           type="button"
           onClick={openNewAssetForm}
-          className="pressable inline-flex items-center justify-center gap-1.5 rounded-full bg-[#BE123C] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-95"
+          className="pressable inline-flex items-center justify-center gap-1.5 rounded-full bg-[#EC4899] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-95"
         >
           <Plus className="h-3.5 w-3.5" />
           <span>Novo Ativo</span>
@@ -248,7 +248,7 @@ export function InvestmentAssetsManager({
             onClick={() => setSelectedGoalFilter("ALL")}
             className={`pressable rounded-full px-3 py-1 text-xs font-medium transition-all ${
               selectedGoalFilter === "ALL"
-                ? "bg-[#BE123C] text-white font-semibold"
+                ? "bg-[#EC4899] text-white font-semibold"
                 : "surface-card text-ink-secondary hover:text-ink"
             }`}
           >
@@ -265,7 +265,7 @@ export function InvestmentAssetsManager({
                 onClick={() => setSelectedGoalFilter(goalName)}
                 className={`pressable rounded-full px-3 py-1 text-xs font-medium transition-all ${
                   selectedGoalFilter === goalName
-                    ? "bg-[#BE123C] text-white font-semibold"
+                    ? "bg-[#EC4899] text-white font-semibold"
                     : "surface-card text-ink-secondary hover:text-ink"
                 }`}
               >
@@ -326,7 +326,7 @@ export function InvestmentAssetsManager({
                 value={form.nome}
                 onChange={(e) => setForm({ ...form, nome: e.target.value })}
                 placeholder="Ex: CDB Itaú Casa Própria, Tesouro IPCA+ 2029..."
-                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none"
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#EC4899] focus:outline-none"
               />
             </div>
 
@@ -342,7 +342,7 @@ export function InvestmentAssetsManager({
                     tipo_ativo: e.target.value as AssetType,
                   })
                 }
-                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#BE123C] focus:outline-none"
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#EC4899] focus:outline-none"
               >
                 {ASSET_TYPES.map((t) => (
                   <option
@@ -371,7 +371,7 @@ export function InvestmentAssetsManager({
                   setForm({ ...form, rendimento: e.target.value })
                 }
                 placeholder="Ex: 112% do CDI ou IPCA + 6,45% a.a."
-                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none"
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#EC4899] focus:outline-none"
               />
             </div>
 
@@ -386,7 +386,7 @@ export function InvestmentAssetsManager({
                   setForm({ ...form, instituicao: e.target.value })
                 }
                 placeholder="Ex: Itaú, Nubank, XP..."
-                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none"
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#EC4899] focus:outline-none"
               />
             </div>
 
@@ -399,7 +399,7 @@ export function InvestmentAssetsManager({
                 value={form.liquidez}
                 onChange={(e) => setForm({ ...form, liquidez: e.target.value })}
                 placeholder="Ex: Diária, No vencimento..."
-                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none"
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#EC4899] focus:outline-none"
               />
             </div>
 
@@ -412,7 +412,7 @@ export function InvestmentAssetsManager({
                 onChange={(e) =>
                   setForm({ ...form, meta_vinculada: e.target.value })
                 }
-                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#BE123C] focus:outline-none"
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#EC4899] focus:outline-none"
               >
                 {availableGoalNames.map((gName) => (
                   <option
@@ -444,7 +444,7 @@ export function InvestmentAssetsManager({
                       | "Maria Luiza",
                   })
                 }
-                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#BE123C] focus:outline-none"
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#EC4899] focus:outline-none"
               >
                 <option value="Casal">Casal</option>
                 <option value="Giovanni">Giovanni</option>
@@ -466,7 +466,7 @@ export function InvestmentAssetsManager({
                   setForm({ ...form, valor_aportado: e.target.value })
                 }
                 placeholder="Ex: 5000"
-                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none tabular-nums"
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#EC4899] focus:outline-none tabular-nums"
               />
             </div>
 
@@ -484,7 +484,7 @@ export function InvestmentAssetsManager({
                   setForm({ ...form, saldo_atual: e.target.value })
                 }
                 placeholder="Ex: 5420"
-                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none tabular-nums"
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#EC4899] focus:outline-none tabular-nums"
               />
             </div>
           </div>
@@ -500,7 +500,7 @@ export function InvestmentAssetsManager({
             <button
               type="submit"
               disabled={isSaving}
-              className="pressable inline-flex items-center gap-1.5 rounded-full bg-[#BE123C] px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+              className="pressable inline-flex items-center gap-1.5 rounded-full bg-[#EC4899] px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
             >
               <Check className="h-3.5 w-3.5" />
               <span>
@@ -554,7 +554,7 @@ export function InvestmentAssetsManager({
                     <span className="surface-subtle rounded-md px-2 py-0.5 text-[11px] font-medium text-ink">
                       {asset.tipo_ativo}
                     </span>
-                    <span className="surface-rose-tint rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-[#BE123C] dark:text-[#FB7185]">
+                    <span className="surface-rose-tint rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-[#EC4899] dark:text-[#FB7185]">
                       {asset.rendimento}
                     </span>
                   </div>
@@ -613,7 +613,7 @@ export function InvestmentAssetsManager({
                     <button
                       type="button"
                       onClick={() => handleDeleteAsset(asset)}
-                      className="pressable inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-ink-muted hover:bg-rose-500/10 hover:text-[#BE123C]"
+                      className="pressable inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-ink-muted hover:bg-rose-500/10 hover:text-[#EC4899]"
                       title="Remover ativo"
                     >
                       <Trash2 className="h-3.5 w-3.5" />

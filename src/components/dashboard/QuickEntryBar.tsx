@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { CornerDownLeft } from "lucide-react";
@@ -143,7 +143,7 @@ export function QuickEntryBar({
       {/* Single Clean Omnibox Bar */}
       <form
         onSubmit={handleSubmit}
-        className="surface-card flex items-center gap-2 rounded-2xl px-3 py-2 transition-colors focus-within:border-[#BE123C]"
+        className="surface-card flex items-center gap-2 rounded-2xl px-3 py-2 transition-colors focus-within:border-[#EC4899]"
       >
         {/* Left Avatar Pill Switcher inside the bar */}
         <div
@@ -156,7 +156,7 @@ export function QuickEntryBar({
             onClick={() => setDefaultMember("Giovanni")}
             className={`pressable flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold transition-all ${
               defaultMember === "Giovanni"
-                ? "bg-[#BE123C] text-white shadow-2xs"
+                ? "bg-[#EC4899] text-white shadow-2xs"
                 : "text-ink-secondary hover:text-ink"
             }`}
             title="Lançar como Giovanni"
@@ -169,7 +169,7 @@ export function QuickEntryBar({
             onClick={() => setDefaultMember("Maria Luiza")}
             className={`pressable flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold transition-all ${
               defaultMember === "Maria Luiza"
-                ? "bg-[#BE123C] text-white shadow-2xs"
+                ? "bg-[#EC4899] text-white shadow-2xs"
                 : "text-ink-secondary hover:text-ink"
             }`}
             title="Lançar como Maria Luiza"
@@ -195,7 +195,7 @@ export function QuickEntryBar({
           <button
             type="submit"
             disabled={!parsed.isValid || isSubmitting}
-            className="pressable inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[#BE123C] px-3.5 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-95 disabled:opacity-40"
+            className="pressable inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[#EC4899] px-3.5 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-95 disabled:opacity-40"
           >
             <span>{isSubmitting ? "Salvando..." : "Salvar"}</span>
             <CornerDownLeft className="h-3.5 w-3.5" />
@@ -218,7 +218,7 @@ export function QuickEntryBar({
               className={`font-semibold ${
                 parsed.isValid
                   ? parsed.valor < 0
-                    ? "text-[#BE123C]"
+                    ? "text-[#EC4899]"
                     : "text-[#0F766E]"
                   : "text-amber-600"
               }`}

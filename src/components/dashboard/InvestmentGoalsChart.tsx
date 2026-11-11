@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo } from "react";
 import {
@@ -46,23 +46,23 @@ function CustomGoalTooltip({ active, payload }: CustomGoalTooltipProps) {
   }
   const item = payload[0].payload;
   return (
-    <div className="surface-card rounded-xl px-3.5 py-2.5 text-xs shadow-lg">
+    <div className="surface-card rounded-xl px-3.5 py-2.5 text-xs">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span
-            className="h-2.5 w-2.5 rounded-full shrink-0"
+            className="h-3 w-3 rounded-full shrink-0 border border-[#1F0D18]"
             style={{ backgroundColor: item.color }}
           />
-          <span className="font-semibold text-ink">{item.nome}</span>
+          <span className="font-bold text-ink">{item.nome}</span>
         </div>
-        <span className="surface-subtle rounded px-1.5 py-0.5 text-[10px] font-medium text-ink-secondary">
+        <span className="surface-subtle rounded px-1.5 py-0.5 text-[10px] font-bold text-ink">
           {item.tipo === "PATRIMONIO" ? "Patrimônio" : "Objetivo"}
         </span>
       </div>
       <div className="mt-2 space-y-1 tabular-nums text-[11px]">
         <div className="flex justify-between gap-4">
           <span className="text-ink-secondary">Saldo Atual:</span>
-          <span className="font-semibold text-ink">
+          <span className="font-bold text-ink">
             {formatBRL(item.saldo_bruto_atual)}
           </span>
         </div>
@@ -72,7 +72,7 @@ function CustomGoalTooltip({ active, payload }: CustomGoalTooltipProps) {
         </div>
         <div className="flex justify-between gap-4">
           <span className="text-ink-secondary">Rendimento:</span>
-          <span className="font-medium text-[#0F766E] dark:text-emerald-400">
+          <span className="font-bold text-[#059669] dark:text-emerald-400">
             {formatBRL(item.rendimento, true)}
           </span>
         </div>
@@ -80,7 +80,7 @@ function CustomGoalTooltip({ active, payload }: CustomGoalTooltipProps) {
           <span className="text-ink-secondary">
             Meta ({formatBRL(item.valor_alvo)}):
           </span>
-          <span className="font-semibold text-[#BE123C]">
+          <span className="font-bold text-[#EC4899]">
             {formatPct(item.progressoPct)}
           </span>
         </div>
@@ -113,7 +113,7 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
         .reduce((acc, g) => acc + g.saldo_bruto_atual, 0)
     );
 
-    const palette = ["#9F1239", "#BE123C", "#E11D48", "#0F766E", "#D97706"];
+    const palette = ["#FF3B9A", "#EC4899", "#C084FC", "#10B981", "#FBBF24"];
 
     const data: GoalChartDatum[] = goals.map((g, idx) => {
       const rendimento = roundCurrency(g.saldo_bruto_atual - g.total_aportado);
@@ -128,7 +128,7 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
       const color =
         CATEGORY_COLORS[g.nome as Category] ??
         palette[idx % palette.length] ??
-        "#BE123C";
+        "#EC4899";
 
       return {
         ...g,
@@ -157,39 +157,39 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
       aria-label="Nossas Metas e Caixinhas"
       className="surface-card flex flex-col justify-between rounded-2xl p-6 min-w-0"
     >
-      {/* Editorial Header */}
+      {/* Editorial Neo-Brutalist Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-editorial text-xl italic tracking-tight text-ink truncate">
+          <h2 className="font-editorial text-2xl italic tracking-tight text-ink truncate">
             Metas &amp; Patrimônio Acumulado
           </h2>
-          <p className="mt-0.5 text-xs text-ink-secondary">
+          <p className="mt-0.5 text-xs font-medium text-ink-secondary">
             Evolução das nossas caixinhas com capital aplicado e rendimentos
           </p>
         </div>
-        <span className="shrink-0 rounded-full border border-teal-600/20 bg-teal-500/10 px-3 py-1 text-[11px] font-semibold text-[#0F766E] dark:text-emerald-300 tabular-nums">
+        <span className="shrink-0 rounded-full border-[1.5px] border-[#1F0D18] bg-[#A7F3D0] px-3 py-1 text-[11px] font-bold text-[#064E3B] shadow-[2px_2px_0px_#1F0D18] tabular-nums">
           Rendimento {formatBRL(summary.rendimentoTotal, true)}
         </span>
       </div>
 
       {/* Chart + Divided Goals List */}
-      <div className="mt-6 grid grid-cols-1 items-center gap-6 md:grid-cols-12">
-        <div className="relative h-56 w-full md:col-span-5">
+      <div className="mt-6 grid grid-cols-1 items-center gap-5 md:grid-cols-12">
+        <div className="relative h-52 w-full min-w-[176px] md:col-span-5">
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
+            <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
               <Pie
                 data={nonZeroChartData}
                 dataKey="saldo_bruto_atual"
                 nameKey="nome"
                 cx="50%"
                 cy="50%"
-                innerRadius={72}
-                outerRadius={96}
+                innerRadius={52}
+                outerRadius={74}
                 paddingAngle={2}
-                stroke="var(--bg-surface)"
-                strokeWidth={2}
+                stroke="var(--border-strong)"
+                strokeWidth={1.75}
                 isAnimationActive={true}
-                animationDuration={450}
+                animationDuration={400}
               >
                 {nonZeroChartData.map((entry) => (
                   <Cell key={entry.id_meta} fill={entry.color} />
@@ -199,23 +199,23 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
             </PieChart>
           </ResponsiveContainer>
 
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-ink-muted">
               Patrimônio Total
             </span>
-            <span className="mt-0.5 text-base font-semibold tracking-[-0.03em] text-ink tabular-nums">
+            <span className="mt-0.5 text-sm font-bold tracking-[-0.03em] text-ink tabular-nums">
               {formatBRL(summary.totalBruto)}
             </span>
-            <span className="text-[11px] text-ink-secondary tabular-nums">
+            <span className="text-[10px] font-medium text-ink-secondary tabular-nums">
               Aplicado {formatBRL(summary.totalAportado)}
             </span>
           </div>
         </div>
 
-        {/* Divided Goals Breakdown (1px divide-y, h-1.5 bar) */}
+        {/* Divided Goals Breakdown */}
         <div className="divide-y divide-hairline md:col-span-7">
           {summary.data.map((goal) => {
-            const clampedBarPct = Math.min(100, Math.max(0, goal.progressoPct));
+            const clampedBarPct = Math.min(100, Math.max(3, goal.progressoPct));
             return (
               <div
                 key={goal.id_meta}
@@ -224,18 +224,18 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
                 <div className="flex items-center justify-between gap-2 min-w-0">
                   <div className="flex items-center gap-2 min-w-0">
                     <span
-                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      className="h-3 w-3 shrink-0 rounded-full border border-[#1F0D18]"
                       style={{ backgroundColor: goal.color }}
                     />
-                    <span className="truncate font-medium text-ink">
+                    <span className="truncate font-semibold text-ink">
                       {goal.nome}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0 tabular-nums">
-                    <span className="font-semibold text-ink">
+                    <span className="font-bold text-ink">
                       {formatBRL(goal.saldo_bruto_atual)}
                     </span>
-                    <span className="text-[11px] text-ink-muted">
+                    <span className="text-[11px] font-medium text-ink-muted">
                       / {formatBRL(goal.valor_alvo)}
                     </span>
                   </div>
@@ -243,7 +243,7 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
 
                 {/* Progress bar */}
                 <div className="mt-1.5 flex items-center gap-2.5">
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--bg-subtle)]">
+                  <div className="h-2 flex-1 overflow-hidden rounded-full border border-[#1F0D18]/40 bg-[var(--bg-subtle)]">
                     <div
                       className="h-full rounded-full transition-all duration-300"
                       style={{
@@ -252,7 +252,7 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
                       }}
                     />
                   </div>
-                  <span className="w-11 text-right text-[11px] font-medium text-ink-secondary tabular-nums">
+                  <span className="w-11 text-right text-[11px] font-bold text-ink-secondary tabular-nums">
                     {formatPct(goal.progressoPct)}
                   </span>
                 </div>
@@ -266,15 +266,15 @@ export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
       <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-3.5 text-xs text-ink-secondary tabular-nums">
         <span>
           Futuro &amp; Casa:{" "}
-          <strong className="font-semibold text-ink">
+          <strong className="font-bold text-ink">
             {formatBRL(summary.patrimonioBruto)}
           </strong>{" "}
           · Planos:{" "}
-          <strong className="font-semibold text-ink">
+          <strong className="font-bold text-ink">
             {formatBRL(summary.consumoDiferidoBruto)}
           </strong>
         </span>
-        <span className="font-medium text-[#0F766E] dark:text-emerald-400">
+        <span className="font-bold text-[#059669] dark:text-emerald-400">
           Ganho acumulado {formatBRL(summary.rendimentoTotal, true)}
         </span>
       </div>

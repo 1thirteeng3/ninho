@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import {
@@ -24,11 +24,11 @@ interface MacroAllocationChartProps {
 }
 
 function getSliceColor(slice: MacroAllocationSlice): string {
-  if (slice.tipo === "INVESTIMENTO") return "#9F1239"; // Deep Berry / Plum
-  if (slice.tipo === "PROVISAO_ANUAL") return "#D97706"; // Terracotta Amber
-  if (slice.tipo === "SALDO_LIVRE") return "#0F766E"; // Sage Teal
+  if (slice.tipo === "INVESTIMENTO") return "#C084FC"; // Orchid Lavender Pink
+  if (slice.tipo === "PROVISAO_ANUAL") return "#FBBF24"; // Neo-Brutalist Butter Gold
+  if (slice.tipo === "SALDO_LIVRE") return "#10B981"; // Neo-Mint
   const cat = slice.label as Category;
-  return CATEGORY_COLORS[cat] ?? "#BE123C";
+  return CATEGORY_COLORS[cat] ?? "#EC4899";
 }
 
 interface CustomTooltipProps {
@@ -44,19 +44,19 @@ function CustomDonutTooltip({ active, payload }: CustomTooltipProps) {
   }
   const item = payload[0].payload;
   return (
-    <div className="surface-card rounded-xl px-3.5 py-2.5 text-xs shadow-lg">
+    <div className="surface-card rounded-xl px-3.5 py-2.5 text-xs">
       <div className="flex items-center gap-2">
         <span
-          className="h-2.5 w-2.5 rounded-full shrink-0"
+          className="h-3 w-3 rounded-full shrink-0 border border-[#1F0D18]"
           style={{ backgroundColor: item.color }}
         />
-        <span className="font-semibold text-ink">{item.label}</span>
+        <span className="font-bold text-ink">{item.label}</span>
       </div>
       <div className="mt-1.5 flex items-center justify-between gap-4 tabular-nums">
-        <span className="font-semibold text-ink">
+        <span className="font-bold text-ink">
           {formatBRL(item.valor)}
         </span>
-        <span className="text-[11px] font-medium text-ink-secondary">
+        <span className="text-[11px] font-semibold text-ink-secondary">
           {formatPct(item.percentualRenda)} da renda
         </span>
       </div>
@@ -79,17 +79,17 @@ export function MacroAllocationChart({
       aria-label="Para Onde Foi Nossa Renda"
       className="surface-card flex flex-col justify-between rounded-2xl p-6 min-w-0"
     >
-      {/* Editorial Header */}
+      {/* Editorial Neo-Brutalist Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-editorial text-xl italic tracking-tight text-ink truncate">
+          <h2 className="font-editorial text-2xl italic tracking-tight text-ink truncate">
             Para Onde Foi Nossa Renda
           </h2>
-          <p className="mt-0.5 text-xs text-ink-secondary">
+          <p className="mt-0.5 text-xs font-medium text-ink-secondary">
             Divisão entre despesas do mês, reserva anual e investimentos
           </p>
         </div>
-        <span className="surface-subtle shrink-0 rounded-full px-3 py-1 text-[11px] font-medium text-ink-secondary tabular-nums">
+        <span className="surface-subtle shrink-0 rounded-full px-3 py-1 text-[11px] font-bold text-ink tabular-nums">
           Entradas: {formatBRL(allocation.rendaTotal)}
         </span>
       </div>
@@ -97,7 +97,7 @@ export function MacroAllocationChart({
       {/* Chart + Divided Legend List */}
       {chartData.length === 0 ? (
         <div className="my-12 flex flex-col items-center justify-center text-center">
-          <p className="text-sm font-medium text-ink">
+          <p className="text-sm font-semibold text-ink">
             Nenhuma movimentação registrada neste mês.
           </p>
           <p className="mt-1 text-xs text-ink-muted">
@@ -105,24 +105,24 @@ export function MacroAllocationChart({
           </p>
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-1 items-center gap-6 md:grid-cols-12">
-          {/* Refined Recharts Donut */}
-          <div className="relative h-56 w-full md:col-span-5">
+        <div className="mt-6 grid grid-cols-1 items-center gap-5 md:grid-cols-12">
+          {/* Unclipped Neo-Brutalist Donut */}
+          <div className="relative h-52 w-full min-w-[176px] md:col-span-5">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                 <Pie
                   data={chartData}
                   dataKey="valor"
                   nameKey="label"
                   cx="50%"
                   cy="50%"
-                  innerRadius={72}
-                  outerRadius={96}
+                  innerRadius={52}
+                  outerRadius={74}
                   paddingAngle={2}
-                  stroke="var(--bg-surface)"
-                  strokeWidth={2}
+                  stroke="var(--border-strong)"
+                  strokeWidth={1.75}
                   isAnimationActive={true}
-                  animationDuration={450}
+                  animationDuration={400}
                 >
                   {chartData.map((entry) => (
                     <Cell key={entry.id} fill={entry.color} />
@@ -133,14 +133,14 @@ export function MacroAllocationChart({
             </ResponsiveContainer>
 
             {/* Center Typographic KPI Overlay */}
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-ink-muted">
                 Total Alocado
               </span>
-              <span className="mt-0.5 text-base font-semibold tracking-[-0.03em] text-ink tabular-nums">
+              <span className="mt-0.5 text-sm font-bold tracking-[-0.03em] text-ink tabular-nums">
                 {formatBRL(totalAllocated)}
               </span>
-              <span className="text-[11px] text-ink-secondary tabular-nums">
+              <span className="text-[10px] font-medium text-ink-secondary tabular-nums">
                 {allocation.rendaTotal > 0
                   ? `${formatPct(
                       allocation.percentualCustos +
@@ -152,10 +152,10 @@ export function MacroAllocationChart({
             </div>
           </div>
 
-          {/* Clean Divided Legend List (Zero nested boxes) */}
-          <div className="divide-y divide-hairline md:col-span-7 max-h-64 overflow-y-auto pr-1">
+          {/* Clean Divided Legend List */}
+          <div className="divide-y divide-hairline md:col-span-7 max-h-60 overflow-y-auto pr-1.5">
             {chartData.map((item) => {
-              const barPct = Math.min(100, Math.max(2, item.percentualRenda));
+              const barPct = Math.min(100, Math.max(3, item.percentualRenda));
               return (
                 <div
                   key={item.id}
@@ -164,23 +164,23 @@ export function MacroAllocationChart({
                   <div className="flex items-center justify-between gap-2 min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
                       <span
-                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        className="h-3 w-3 shrink-0 rounded-full border border-[#1F0D18]"
                         style={{ backgroundColor: item.color }}
                       />
-                      <span className="truncate font-medium text-ink">
+                      <span className="truncate font-semibold text-ink">
                         {item.label}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0 tabular-nums">
-                      <span className="font-semibold text-ink">
+                    <div className="flex items-center gap-2.5 shrink-0 tabular-nums">
+                      <span className="font-bold text-ink">
                         {formatBRL(item.valor)}
                       </span>
-                      <span className="w-12 text-right text-[11px] text-ink-secondary">
+                      <span className="w-11 text-right text-[11px] font-medium text-ink-secondary">
                         {formatPct(item.percentualRenda)}
                       </span>
                     </div>
                   </div>
-                  <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-subtle)]">
+                  <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full border border-[#1F0D18]/40 bg-[var(--bg-subtle)]">
                     <div
                       className="h-full rounded-full transition-all duration-300"
                       style={{
@@ -198,8 +198,8 @@ export function MacroAllocationChart({
 
       {/* Footer Note */}
       <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-3.5 text-xs text-ink-secondary">
-        <span>Equilíbrio mensal entre presente e futuro</span>
-        <span className="tabular-nums font-medium text-ink">
+        <span className="font-medium">Equilíbrio mensal entre presente e futuro</span>
+        <span className="tabular-nums font-bold text-ink">
           Gastos {formatPct(allocation.percentualCustos)} · Guardado{" "}
           {formatPct(
             allocation.percentualInvestimentos + allocation.percentualProvisoes
