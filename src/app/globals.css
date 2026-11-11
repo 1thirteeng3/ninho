@@ -1,19 +1,44 @@
 @import "tailwindcss";
 
-:root {
-  color-scheme: dark;
-  --bg-base: #120910;
-  --bg-card: #1B0E18;
-  --bg-elevated: #261422;
-  --border-subtle: rgba(244, 114, 182, 0.14);
-  --border-highlight: rgba(251, 113, 133, 0.28);
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --bg-canvas: #FAF5F4;
+  --bg-surface: #FFFFFF;
+  --bg-subtle: #F5ECEA;
+  --bg-rose-tint: #FFF1F3;
+  --text-primary: #1D1115;
+  --text-secondary: #685259;
+  --text-muted: #9A828A;
+  --border-hairline: #EADBD8;
+  --border-strong: #DBC3BF;
+  --accent-primary: #BE123C;
+  --accent-soft: #FFE4E8;
+  --shadow-card: 0 1px 2px rgba(29, 17, 21, 0.03), 0 8px 24px -6px rgba(136, 19, 55, 0.05);
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-canvas: #110B0E;
+  --bg-surface: #1A1116;
+  --bg-subtle: #24181F;
+  --bg-rose-tint: rgba(244, 114, 182, 0.09);
+  --text-primary: #FAF2F4;
+  --text-secondary: #C4ACB4;
+  --text-muted: #876E77;
+  --border-hairline: rgba(255, 228, 232, 0.09);
+  --border-strong: rgba(255, 228, 232, 0.18);
+  --accent-primary: #FB7185;
+  --accent-soft: rgba(251, 113, 133, 0.14);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -8px rgba(0, 0, 0, 0.45);
+}
+
 html {
-  background-color: var(--bg-base);
-  color: #FDF2F8;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -22,16 +47,61 @@ html {
 
 body {
   min-height: 100svh;
-  background-color: var(--bg-base);
-  background-image:
-    radial-gradient(circle at 12% 0%, rgba(244, 114, 182, 0.12) 0%, transparent 44%),
-    radial-gradient(circle at 88% 4%, rgba(251, 113, 133, 0.09) 0%, transparent 42%),
-    radial-gradient(circle at 50% 100%, rgba(217, 70, 239, 0.07) 0%, transparent 50%);
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
   overscroll-behavior-y: none;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
+  transition:
+    background-color 200ms var(--ease-out-quart),
+    color 200ms var(--ease-out-quart);
+}
+
+/* Semantic Design System Utilities */
+.surface-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-card);
+}
+
+.surface-subtle {
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-hairline);
+}
+
+.surface-rose-tint {
+  background-color: var(--bg-rose-tint);
+  border: 1px solid var(--border-hairline);
+}
+
+.font-editorial {
+  font-family: var(--font-serif), Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
+.text-ink {
+  color: var(--text-primary);
+}
+
+.text-ink-secondary {
+  color: var(--text-secondary);
+}
+
+.text-ink-muted {
+  color: var(--text-muted);
+}
+
+.border-hairline {
+  border-color: var(--border-hairline);
+}
+
+.border-strong {
+  border-color: var(--border-strong);
+}
+
+.divide-hairline > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border-hairline);
 }
 
 /* Tabular numbers for financial alignment to the cent */
@@ -65,7 +135,7 @@ select {
 @keyframes fadeSlideUp {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -74,20 +144,20 @@ select {
 }
 
 .animate-enter {
-  animation: fadeSlideUp 320ms var(--ease-out-expo) both;
+  animation: fadeSlideUp 260ms var(--ease-out-expo) both;
 }
 
 .delay-1 {
-  animation-delay: 40ms;
+  animation-delay: 30ms;
 }
 .delay-2 {
-  animation-delay: 80ms;
+  animation-delay: 60ms;
 }
 .delay-3 {
-  animation-delay: 120ms;
+  animation-delay: 90ms;
 }
 .delay-4 {
-  animation-delay: 160ms;
+  animation-delay: 120ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -105,21 +175,21 @@ select {
   }
 }
 
-/* Subtle custom scrollbar in rose tones */
+/* Subtle custom scrollbar in rose-porcelain tones */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(18, 9, 16, 0.7);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(244, 114, 182, 0.25);
+  background: var(--border-strong);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(251, 113, 133, 0.45);
+  background: var(--accent-primary);
 }

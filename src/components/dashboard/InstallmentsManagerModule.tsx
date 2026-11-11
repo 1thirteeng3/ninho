@@ -1,20 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  CalendarClock,
-  Check,
-  CheckCircle2,
-  CreditCard,
-  Layers,
-  Plus,
-  Sparkles,
-  Trash2,
-  User,
-  X,
-} from "lucide-react";
+import { Check, CheckCircle2, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   projectFutureInvoices,
@@ -31,7 +18,6 @@ import {
   formatBRL,
   formatShortDate,
   formatYearMonthLabel,
-  getMemberBadgeStyle,
 } from "@/lib/formatters";
 import type { DataSourceMode } from "./HeaderControls";
 
@@ -104,7 +90,6 @@ export function InstallmentsManagerModule({
   >("Casal");
   const [isSavingReceivable, setIsSavingReceivable] = useState(false);
 
-  // Group all multi-installment COST transactions into payable plans
   const payablePlans = useMemo<GroupedPayablePlan[]>(() => {
     const map = new Map<string, Transaction[]>();
 
@@ -245,7 +230,7 @@ export function InstallmentsManagerModule({
       }
 
       toast.success(
-        `✅ Compra parcelada cadastrada: ${desc} em ${count}x de ${formatBRL(
+        `Compra parcelada cadastrada: ${desc} em ${count}x de ${formatBRL(
           roundCurrency(val / count)
         )}`
       );
@@ -279,7 +264,7 @@ export function InstallmentsManagerModule({
         throw new Error("Não foi possível antecipar a parcela.");
       }
 
-      toast.success(`Parcela antecipada / baixada no mês: ${title}`);
+      toast.success(`Parcela antecipada no mês: ${title}`);
       await onDataChanged();
     } catch {
       toast.error("Erro ao dar baixa na parcela.");
@@ -332,7 +317,7 @@ export function InstallmentsManagerModule({
       }
 
       toast.success(
-        `✅ Valor a receber cadastrado: ${desc} (${count}x de ${formatBRL(
+        `Valor a receber cadastrado: ${desc} (${count}x de ${formatBRL(
           roundCurrency(total / count)
         )})`
       );
@@ -372,7 +357,7 @@ export function InstallmentsManagerModule({
       );
 
       toast.success(
-        `🎉 Parcela recebida! +${formatBRL(unitVal)} adicionado nas Entradas do mês`,
+        `Parcela recebida! +${formatBRL(unitVal)} adicionado nas Entradas do mês`,
         {
           description: `${rec.descricao} • Pagador: ${rec.pagador_origem}`,
         }
@@ -407,71 +392,63 @@ export function InstallmentsManagerModule({
   return (
     <section
       aria-label="Central de Parcelas a Pagar e a Receber"
-      className="animate-enter delay-3 rounded-2xl border border-rose-500/20 bg-[#1B0E18] p-5 shadow-lg shadow-rose-950/20"
+      className="animate-enter delay-2 surface-card rounded-2xl overflow-hidden"
     >
-      {/* Header + Segmented Tabs */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      {/* Editorial Header + Clean Segmented Tabs */}
+      <div className="flex flex-col gap-3 border-b border-hairline px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-rose-500/20 text-rose-300 border border-rose-400/30">
-              <Layers className="h-4 w-4" />
-            </span>
-            <h2 className="text-base font-semibold text-white">
-              Central de Parcelas: O que Temos a Pagar e a Receber
-            </h2>
-          </div>
-          <p className="mt-1 text-xs text-rose-200/75">
-            Acompanhe compras parceladas no cartão, veja quanto falta quitar e
-            controle valores parcelados que vão entrar na conta
+          <h2 className="font-editorial text-xl italic tracking-tight text-ink">
+            Central de Parcelas &amp; Valores a Receber
+          </h2>
+          <p className="mt-0.5 text-xs text-ink-secondary">
+            Compras parceladas nos cartões, cronograma de faturas e recebíveis do casal
           </p>
         </div>
 
-        {/* Switcher: Parcelas a Pagar vs Valores a Receber */}
-        <div className="inline-flex rounded-xl border border-rose-500/25 bg-[#120910] p-1 self-start lg:self-auto">
+        {/* Clean Pill Switcher */}
+        <div className="surface-subtle inline-flex rounded-full p-0.5 self-start lg:self-auto">
           <button
             type="button"
             onClick={() => setActiveTab("PAYABLES")}
-            className={`pressable flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold ${
+            className={`pressable rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
               activeTab === "PAYABLES"
-                ? "bg-rose-500/25 text-rose-100 border border-rose-400/40"
-                : "text-rose-200/70 hover:text-white"
+                ? "surface-card text-ink font-semibold"
+                : "text-ink-secondary hover:text-ink"
             }`}
           >
-            <ArrowUpRight className="h-3.5 w-3.5 text-rose-400" />
-            <span>Parcelas a Pagar ({payablePlans.length})</span>
+            Parcelas a Pagar ({payablePlans.length})
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("RECEIVABLES")}
-            className={`pressable flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold ${
+            className={`pressable rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
               activeTab === "RECEIVABLES"
-                ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/40"
-                : "text-rose-200/70 hover:text-white"
+                ? "surface-card text-ink font-semibold"
+                : "text-ink-secondary hover:text-ink"
             }`}
           >
-            <ArrowDownLeft className="h-3.5 w-3.5 text-emerald-400" />
-            <span>Valores a Receber ({receivables.length})</span>
+            Valores a Receber ({receivables.length})
           </button>
         </div>
       </div>
 
       {/* TAB 1: PARCELAS A PAGAR */}
       {activeTab === "PAYABLES" ? (
-        <div className="mt-4 space-y-4">
-          {/* Summary Bar + Action Button */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-500/15 bg-[#120910]/70 px-4 py-3">
-            <div className="flex flex-wrap items-center gap-4 text-xs tabular-nums">
+        <div className="p-6 space-y-6">
+          {/* Summary Strip + Action */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-4">
+            <div className="flex flex-wrap items-center gap-6 text-xs tabular-nums">
               <div>
-                <span className="text-rose-200/70">Já pago até este mês: </span>
-                <strong className="text-emerald-300">
+                <span className="text-ink-secondary">Já quitado: </span>
+                <strong className="font-semibold text-[#0F766E] dark:text-emerald-400">
                   {formatBRL(payableSummary.totalPaid)}
                 </strong>
               </div>
               <div>
-                <span className="text-rose-200/70">
-                  Falta pagar nas próximas faturas:{" "}
+                <span className="text-ink-secondary">
+                  Saldo nas próximas faturas:{" "}
                 </span>
-                <strong className="text-rose-200">
+                <strong className="font-semibold text-ink">
                   {formatBRL(payableSummary.totalRemaining)}
                 </strong>
               </div>
@@ -480,7 +457,7 @@ export function InstallmentsManagerModule({
             <button
               type="button"
               onClick={() => setIsNewPayableOpen((prev) => !prev)}
-              className="pressable inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:from-rose-400 hover:to-pink-400"
+              className="pressable inline-flex items-center gap-1.5 rounded-full bg-[#BE123C] px-4 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-95"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Nova Compra Parcelada</span>
@@ -491,17 +468,16 @@ export function InstallmentsManagerModule({
           {isNewPayableOpen && (
             <form
               onSubmit={handleCreatePayable}
-              className="rounded-2xl border border-rose-400/35 bg-[#120910]/95 p-4 shadow-xl"
+              className="surface-subtle rounded-2xl p-5"
             >
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-rose-200 flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-rose-400" />
+                <h3 className="text-xs font-semibold uppercase tracking-[0.06em] text-ink">
                   Registrar Nova Compra Parcelada
                 </h3>
                 <button
                   type="button"
                   onClick={() => setIsNewPayableOpen(false)}
-                  className="pressable rounded-lg p-1 text-rose-200/60 hover:text-white"
+                  className="pressable rounded-lg p-1 text-ink-muted hover:text-ink"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -509,7 +485,7 @@ export function InstallmentsManagerModule({
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
                 <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
+                  <label className="block text-[11px] font-medium text-ink-secondary mb-1">
                     O que foi comprado?
                   </label>
                   <input
@@ -518,12 +494,12 @@ export function InstallmentsManagerModule({
                     value={payableDesc}
                     onChange={(e) => setPayableDesc(e.target.value)}
                     placeholder="Ex: Geladeira Inox, Passagens Aéreas..."
-                    className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white placeholder:text-rose-200/40 focus:border-rose-400 focus:outline-none"
+                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
+                  <label className="block text-[11px] font-medium text-ink-secondary mb-1">
                     Valor Total (R$)
                   </label>
                   <input
@@ -534,13 +510,13 @@ export function InstallmentsManagerModule({
                     value={payableTotal}
                     onChange={(e) => setPayableTotal(e.target.value)}
                     placeholder="Ex: 1800"
-                    className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white placeholder:text-rose-200/40 focus:border-rose-400 focus:outline-none tabular-nums"
+                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none tabular-nums"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
-                    Quantas Parcelas?
+                  <label className="block text-[11px] font-medium text-ink-secondary mb-1">
+                    Parcelas
                   </label>
                   <input
                     type="number"
@@ -549,12 +525,12 @@ export function InstallmentsManagerModule({
                     required
                     value={payableCount}
                     onChange={(e) => setPayableCount(e.target.value)}
-                    className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white focus:border-rose-400 focus:outline-none tabular-nums"
+                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#BE123C] focus:outline-none tabular-nums"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
+                  <label className="block text-[11px] font-medium text-ink-secondary mb-1">
                     Categoria
                   </label>
                   <select
@@ -562,13 +538,16 @@ export function InstallmentsManagerModule({
                     onChange={(e) =>
                       setPayableCategory(e.target.value as Category)
                     }
-                    className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white focus:border-rose-400 focus:outline-none"
+                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#BE123C] focus:outline-none"
                   >
                     {PURCHASE_CATEGORIES.map((c) => (
                       <option
                         key={c}
                         value={c}
-                        className="bg-[#1B0E18] text-white"
+                        style={{
+                          backgroundColor: "var(--bg-surface)",
+                          color: "var(--text-primary)",
+                        }}
                       >
                         {c}
                       </option>
@@ -577,23 +556,23 @@ export function InstallmentsManagerModule({
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
-                    Cartão & Quem Comprou
+                  <label className="block text-[11px] font-medium text-ink-secondary mb-1">
+                    Cartão &amp; Autor
                   </label>
                   <div className="flex gap-1.5">
                     <input
                       type="text"
                       value={payableAccount}
                       onChange={(e) => setPayableAccount(e.target.value)}
-                      placeholder="Nubank Conjunta"
-                      className="w-1/2 rounded-xl border border-rose-400/25 bg-[#1B0E18] px-2.5 py-2 text-xs text-white focus:border-rose-400 focus:outline-none"
+                      placeholder="Nubank"
+                      className="surface-card w-1/2 rounded-xl px-2.5 py-2 text-xs text-ink focus:border-[#BE123C] focus:outline-none"
                     />
                     <select
                       value={payableMember}
                       onChange={(e) =>
                         setPayableMember(e.target.value as Member)
                       }
-                      className="w-1/2 rounded-xl border border-rose-400/25 bg-[#1B0E18] px-2 py-2 text-xs text-white focus:border-rose-400 focus:outline-none"
+                      className="surface-card w-1/2 rounded-xl px-2 py-2 text-xs text-ink focus:border-[#BE123C] focus:outline-none"
                     >
                       <option value="Giovanni">Giovanni</option>
                       <option value="Maria Luiza">Maria Luiza</option>
@@ -602,18 +581,18 @@ export function InstallmentsManagerModule({
                 </div>
               </div>
 
-              <div className="mt-3 flex justify-end gap-2">
+              <div className="mt-4 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsNewPayableOpen(false)}
-                  className="pressable rounded-xl border border-rose-400/20 px-3 py-1.5 text-xs text-rose-200"
+                  className="pressable surface-card rounded-full px-3.5 py-1.5 text-xs font-medium text-ink-secondary"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingPayable}
-                  className="pressable inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 px-4 py-1.5 text-xs font-semibold text-white"
+                  className="pressable inline-flex items-center gap-1.5 rounded-full bg-[#BE123C] px-4 py-1.5 text-xs font-semibold text-white"
                 >
                   <Check className="h-3.5 w-3.5" />
                   <span>
@@ -626,11 +605,11 @@ export function InstallmentsManagerModule({
 
           {/* Payable Installment Cards */}
           {payablePlans.length === 0 ? (
-            <div className="rounded-xl border border-rose-500/15 bg-[#120910]/50 p-6 text-center text-xs text-rose-200/70">
+            <div className="py-8 text-center text-xs text-ink-muted">
               Nenhuma compra parcelada encontrada.
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {payablePlans.map((plan) => {
                 const progressPct = Math.min(
                   100,
@@ -644,69 +623,53 @@ export function InstallmentsManagerModule({
                 return (
                   <article
                     key={plan.planKey}
-                    className="flex flex-col justify-between rounded-xl border border-rose-500/20 bg-[#120910]/80 p-4"
+                    className="flex flex-col justify-between rounded-xl border border-hairline bg-[var(--bg-subtle)]/25 p-4"
                   >
                     <div>
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="rounded-md border border-rose-400/25 bg-rose-500/15 px-2 py-0.5 text-[10px] font-semibold text-rose-200">
-                          {plan.categoria}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-medium text-ink-secondary">
+                          {plan.categoria} · {plan.conta}
                         </span>
                         <span
-                          className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tabular-nums ${
+                          className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold tabular-nums ${
                             isDone
-                              ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
-                              : "border-pink-400/30 bg-pink-500/15 text-pink-200"
+                              ? "bg-teal-500/10 text-[#0F766E] dark:text-emerald-300"
+                              : "surface-rose-tint text-[#BE123C] dark:text-[#FB7185]"
                           }`}
                         >
                           {plan.paidCount} de {plan.totalParcelas} pagas
                         </span>
                       </div>
 
-                      <h3 className="mt-2 text-sm font-semibold text-white">
-                        {plan.title}
-                      </h3>
-
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-rose-200/75">
-                        <span className="inline-flex items-center gap-1">
-                          <CreditCard className="h-3 w-3 text-rose-400" />
-                          {plan.conta}
-                        </span>
-                        <span>•</span>
-                        <span
-                          className={`rounded border px-1.5 py-0.5 text-[10px] font-medium ${getMemberBadgeStyle(
-                            plan.pago_por
-                          )}`}
-                        >
-                          {plan.pago_por}
-                        </span>
-                        <span>•</span>
-                        <span className="tabular-nums text-rose-100">
+                      <div className="mt-2 flex items-baseline justify-between gap-2">
+                        <h3 className="text-sm font-semibold text-ink">
+                          {plan.title}
+                        </h3>
+                        <span className="text-xs font-semibold text-ink tabular-nums shrink-0">
                           {formatBRL(plan.unitAmount)}/mês
                         </span>
                       </div>
 
-                      {/* Progress bar */}
-                      <div className="mt-3">
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-rose-500/15">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-rose-500 to-pink-400 transition-all duration-300"
-                            style={{ width: `${progressPct}%` }}
-                          />
-                        </div>
+                      {/* Thin Progress Bar (h-1.5) */}
+                      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--border-hairline)]">
+                        <div
+                          className="h-full rounded-full bg-[#BE123C] transition-all duration-300"
+                          style={{ width: `${progressPct}%` }}
+                        />
                       </div>
                     </div>
 
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-rose-500/15 pt-2.5 text-xs tabular-nums">
-                      <div className="space-x-3">
-                        <span className="text-rose-200/70">
+                    <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-3 text-xs tabular-nums">
+                      <div className="space-x-3 text-ink-secondary">
+                        <span>
                           Total:{" "}
-                          <strong className="text-white">
+                          <strong className="font-semibold text-ink">
                             {formatBRL(plan.totalAmount)}
                           </strong>
                         </span>
-                        <span className="text-rose-200/70">
-                          Falta:{" "}
-                          <strong className="text-rose-300">
+                        <span>
+                          Restante:{" "}
+                          <strong className="font-semibold text-[#BE123C] dark:text-rose-400">
                             {formatBRL(plan.remainingAmount)}
                           </strong>
                         </span>
@@ -721,11 +684,11 @@ export function InstallmentsManagerModule({
                               plan.title
                             )
                           }
-                          className="pressable inline-flex items-center gap-1 rounded-lg border border-rose-400/30 bg-rose-500/15 px-2.5 py-1 text-[11px] font-medium text-rose-100 hover:bg-rose-500/25"
-                          title="Antecipar a próxima parcela para a fatura atual"
+                          className="pressable surface-card inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold text-ink hover:border-[#BE123C] hover:text-[#BE123C]"
+                          title="Adiantar a próxima parcela para a fatura atual"
                         >
-                          <CheckCircle2 className="h-3 w-3 text-rose-300" />
-                          <span>Antecipar 1 parcela</span>
+                          <CheckCircle2 className="h-3 w-3 text-[#BE123C]" />
+                          <span>Adiantar parcela</span>
                         </button>
                       )}
                     </div>
@@ -737,28 +700,25 @@ export function InstallmentsManagerModule({
 
           {/* Monthly Future Invoices Strip */}
           {futureInvoices.length > 0 && (
-            <div className="border-t border-rose-500/15 pt-4">
-              <div className="flex items-center gap-2 mb-2.5">
-                <CalendarClock className="h-4 w-4 text-rose-400" />
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-rose-200">
-                  Quanto Vai Cair nas Próximas Faturas (Mês a Mês)
-                </h3>
-              </div>
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-4">
+            <div className="border-t border-hairline pt-5">
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-secondary mb-3">
+                Projeção das Próximas Faturas
+              </h3>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
                 {futureInvoices.slice(0, 4).map((proj) => (
                   <div
                     key={proj.yearMonth}
-                    className="rounded-xl border border-rose-500/15 bg-[#120910]/60 p-3 text-xs tabular-nums"
+                    className="rounded-xl border border-hairline bg-[var(--bg-subtle)]/25 p-3.5 text-xs tabular-nums"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-white">
+                      <span className="font-semibold text-ink">
                         {formatYearMonthLabel(proj.yearMonth)}
                       </span>
-                      <span className="rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] text-rose-200">
+                      <span className="text-[11px] text-ink-muted">
                         {proj.installments.length} parc.
                       </span>
                     </div>
-                    <p className="mt-1 text-base font-bold text-rose-300">
+                    <p className="mt-1.5 text-base font-semibold tracking-[-0.02em] text-[#BE123C] dark:text-rose-400">
                       {formatBRL(proj.totalCommitted)}
                     </p>
                   </div>
@@ -769,19 +729,19 @@ export function InstallmentsManagerModule({
         </div>
       ) : (
         /* TAB 2: VALORES E PARCELAS A RECEBER */
-        <div className="mt-4 space-y-4">
+        <div className="p-6 space-y-6">
           {/* Summary Bar + Button */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-500/15 bg-[#120910]/70 px-4 py-3">
-            <div className="flex flex-wrap items-center gap-4 text-xs tabular-nums">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-4">
+            <div className="flex flex-wrap items-center gap-6 text-xs tabular-nums">
               <div>
-                <span className="text-rose-200/70">Total já recebido: </span>
-                <strong className="text-emerald-300">
+                <span className="text-ink-secondary">Já recebido: </span>
+                <strong className="font-semibold text-[#0F766E] dark:text-emerald-400">
                   {formatBRL(receivableSummary.totalReceived)}
                 </strong>
               </div>
               <div>
-                <span className="text-rose-200/70">Falta entrar na conta: </span>
-                <strong className="text-amber-200">
+                <span className="text-ink-secondary">A receber: </span>
+                <strong className="font-semibold text-ink">
                   {formatBRL(receivableSummary.totalPending)}
                 </strong>
               </div>
@@ -790,7 +750,7 @@ export function InstallmentsManagerModule({
             <button
               type="button"
               onClick={() => setIsNewReceivableOpen((prev) => !prev)}
-              className="pressable inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-3.5 py-1.5 text-xs font-semibold text-slate-950 shadow-sm hover:from-emerald-400 hover:to-teal-400"
+              className="pressable inline-flex items-center gap-1.5 rounded-full bg-[#0F766E] px-4 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-95"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Novo Valor a Receber</span>
@@ -801,17 +761,16 @@ export function InstallmentsManagerModule({
           {isNewReceivableOpen && (
             <form
               onSubmit={handleCreateReceivable}
-              className="rounded-2xl border border-emerald-400/35 bg-[#120910]/95 p-4 shadow-xl"
+              className="surface-subtle rounded-2xl p-5"
             >
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-emerald-200 flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+                <h3 className="text-xs font-semibold uppercase tracking-[0.06em] text-ink">
                   Cadastrar Valor ou Parcelas a Receber
                 </h3>
                 <button
                   type="button"
                   onClick={() => setIsNewReceivableOpen(false)}
-                  className="pressable rounded-lg p-1 text-rose-200/60 hover:text-white"
+                  className="pressable rounded-lg p-1 text-ink-muted hover:text-ink"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -819,22 +778,22 @@ export function InstallmentsManagerModule({
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
                 <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
-                    Descrição do que vamos receber
+                  <label className="block text-[11px] font-medium text-ink-secondary mb-1">
+                    Descrição
                   </label>
                   <input
                     type="text"
                     required
                     value={recDesc}
                     onChange={(e) => setRecDesc(e.target.value)}
-                    placeholder="Ex: Venda do Notebook, Reembolso Médico, Freela..."
-                    className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white placeholder:text-rose-200/40 focus:border-emerald-400 focus:outline-none"
+                    placeholder="Ex: Venda do Notebook, Reembolso Médico..."
+                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#0F766E] focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
-                    Quem vai nos pagar?
+                  <label className="block text-[11px] font-medium text-ink-secondary mb-1">
+                    Pagador
                   </label>
                   <input
                     type="text"
@@ -842,12 +801,12 @@ export function InstallmentsManagerModule({
                     value={recPayer}
                     onChange={(e) => setRecPayer(e.target.value)}
                     placeholder="Ex: Amigo Lucas, Convênio..."
-                    className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white placeholder:text-rose-200/40 focus:border-emerald-400 focus:outline-none"
+                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#0F766E] focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
+                  <label className="block text-[11px] font-medium text-ink-secondary mb-1">
                     Valor Total (R$)
                   </label>
                   <input
@@ -858,13 +817,13 @@ export function InstallmentsManagerModule({
                     value={recTotal}
                     onChange={(e) => setRecTotal(e.target.value)}
                     placeholder="Ex: 1500"
-                    className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white placeholder:text-rose-200/40 focus:border-emerald-400 focus:outline-none tabular-nums"
+                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#0F766E] focus:outline-none tabular-nums"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
-                    Em quantas parcelas?
+                  <label className="block text-[11px] font-medium text-ink-secondary mb-1">
+                    Parcelas
                   </label>
                   <input
                     type="number"
@@ -873,38 +832,38 @@ export function InstallmentsManagerModule({
                     required
                     value={recCount}
                     onChange={(e) => setRecCount(e.target.value)}
-                    className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white focus:border-emerald-400 focus:outline-none tabular-nums"
+                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#0F766E] focus:outline-none tabular-nums"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
-                    Próximo Pagamento
+                  <label className="block text-[11px] font-medium text-ink-secondary mb-1">
+                    Próximo Vencimento
                   </label>
                   <input
                     type="date"
                     value={recDate}
                     onChange={(e) => setRecDate(e.target.value)}
-                    className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-2.5 py-2 text-xs text-white focus:border-emerald-400 focus:outline-none tabular-nums"
+                    className="surface-card w-full rounded-xl px-2.5 py-2 text-xs text-ink focus:border-[#0F766E] focus:outline-none tabular-nums"
                   />
                 </div>
 
                 <div className="sm:col-span-2 lg:col-span-3">
-                  <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
-                    Conta onde vai cair
+                  <label className="block text-[11px] font-medium text-ink-secondary mb-1">
+                    Conta Destino
                   </label>
                   <input
                     type="text"
                     value={recAccount}
                     onChange={(e) => setRecAccount(e.target.value)}
                     placeholder="Ex: Nubank Conjunta, Itaú Conjunta..."
-                    className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white focus:border-emerald-400 focus:outline-none"
+                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#0F766E] focus:outline-none"
                   />
                 </div>
 
                 <div className="sm:col-span-2 lg:col-span-3">
-                  <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
-                    Quem vai receber?
+                  <label className="block text-[11px] font-medium text-ink-secondary mb-1">
+                    Titular Recebedor
                   </label>
                   <select
                     value={recReceiver}
@@ -913,7 +872,7 @@ export function InstallmentsManagerModule({
                         e.target.value as "Casal" | "Giovanni" | "Maria Luiza"
                       )
                     }
-                    className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white focus:border-emerald-400 focus:outline-none"
+                    className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#0F766E] focus:outline-none"
                   >
                     <option value="Casal">Casal (Conta Conjunta)</option>
                     <option value="Giovanni">Giovanni</option>
@@ -922,18 +881,18 @@ export function InstallmentsManagerModule({
                 </div>
               </div>
 
-              <div className="mt-3 flex justify-end gap-2">
+              <div className="mt-4 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsNewReceivableOpen(false)}
-                  className="pressable rounded-xl border border-rose-400/20 px-3 py-1.5 text-xs text-rose-200"
+                  className="pressable surface-card rounded-full px-3.5 py-1.5 text-xs font-medium text-ink-secondary"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingReceivable}
-                  className="pressable inline-flex items-center gap-1.5 rounded-xl bg-emerald-500 px-4 py-1.5 text-xs font-semibold text-slate-950"
+                  className="pressable inline-flex items-center gap-1.5 rounded-full bg-[#0F766E] px-4 py-1.5 text-xs font-semibold text-white"
                 >
                   <Check className="h-3.5 w-3.5" />
                   <span>
@@ -948,11 +907,11 @@ export function InstallmentsManagerModule({
 
           {/* Receivables List */}
           {receivables.length === 0 ? (
-            <div className="rounded-xl border border-rose-500/15 bg-[#120910]/50 p-6 text-center text-xs text-rose-200/70">
+            <div className="py-8 text-center text-xs text-ink-muted">
               Nenhum valor a receber cadastrado no momento.
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {receivables.map((rec) => {
                 const unitVal = roundCurrency(
                   rec.valor_total / Math.max(1, rec.total_parcelas)
@@ -981,19 +940,18 @@ export function InstallmentsManagerModule({
                 return (
                   <article
                     key={rec.id}
-                    className="flex flex-col justify-between rounded-xl border border-rose-500/20 bg-[#120910]/80 p-4"
+                    className="flex flex-col justify-between rounded-xl border border-hairline bg-[var(--bg-subtle)]/25 p-4"
                   >
                     <div>
                       <div className="flex items-center justify-between gap-2">
-                        <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
-                          <User className="h-2.5 w-2.5" />
-                          {rec.pagador_origem}
+                        <span className="text-[11px] font-medium text-ink-secondary">
+                          {rec.pagador_origem} · {rec.conta_destino}
                         </span>
                         <span
-                          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold tabular-nums ${
+                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold tabular-nums ${
                             isCompleted
-                              ? "border-emerald-500/35 bg-emerald-500/20 text-emerald-200"
-                              : "border-amber-400/35 bg-amber-500/15 text-amber-200"
+                              ? "bg-teal-500/10 text-[#0F766E] dark:text-emerald-300"
+                              : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
                           }`}
                         >
                           {rec.parcelas_recebidas} de {rec.total_parcelas}{" "}
@@ -1001,44 +959,39 @@ export function InstallmentsManagerModule({
                         </span>
                       </div>
 
-                      <h3 className="mt-2 text-sm font-semibold text-white">
+                      <h3 className="mt-2 text-sm font-semibold text-ink">
                         {rec.descricao}
                       </h3>
 
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-rose-200/75 tabular-nums">
-                        <span>
-                          Parcela: <strong>{formatBRL(unitVal)}</strong>
-                        </span>
-                        <span>•</span>
-                        <span>
-                          Próx: {formatShortDate(rec.proximo_vencimento)}
-                        </span>
-                        <span>•</span>
-                        <span>{rec.conta_destino}</span>
-                      </div>
+                      <p className="mt-1 text-xs text-ink-secondary tabular-nums">
+                        Parcela:{" "}
+                        <strong className="font-semibold text-ink">
+                          {formatBRL(unitVal)}
+                        </strong>{" "}
+                        · Próx. vencimento:{" "}
+                        {formatShortDate(rec.proximo_vencimento)}
+                      </p>
 
-                      {/* Progress bar */}
-                      <div className="mt-3">
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-rose-500/15">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-300"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
+                      {/* Thin Progress bar (h-1.5) */}
+                      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--border-hairline)]">
+                        <div
+                          className="h-full rounded-full bg-[#0F766E] transition-all duration-300"
+                          style={{ width: `${pct}%` }}
+                        />
                       </div>
                     </div>
 
-                    <div className="mt-3 border-t border-rose-500/15 pt-3">
-                      <div className="flex items-center justify-between text-xs tabular-nums mb-2.5">
-                        <span className="text-rose-200/70">
+                    <div className="mt-3.5 border-t border-hairline pt-3">
+                      <div className="flex items-center justify-between text-xs tabular-nums mb-3">
+                        <span className="text-ink-secondary">
                           Total:{" "}
-                          <strong className="text-white">
+                          <strong className="font-semibold text-ink">
                             {formatBRL(rec.valor_total)}
                           </strong>
                         </span>
-                        <span className="text-rose-200/70">
-                          Falta receber:{" "}
-                          <strong className="text-emerald-300">
+                        <span className="text-ink-secondary">
+                          Pendente:{" "}
+                          <strong className="font-semibold text-[#0F766E] dark:text-emerald-400">
                             {formatBRL(pendingVal)}
                           </strong>
                         </span>
@@ -1049,22 +1002,22 @@ export function InstallmentsManagerModule({
                           <button
                             type="button"
                             onClick={() => handleReceiveInstallment(rec)}
-                            className="pressable flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500/20 border border-emerald-400/40 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/30"
+                            className="pressable flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-[#0F766E] px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-95"
                           >
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
-                            <span>Receber Parcela ({formatBRL(unitVal)})</span>
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span>Receber parcela ({formatBRL(unitVal)})</span>
                           </button>
                         ) : (
-                          <span className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">
+                          <span className="flex-1 inline-flex items-center justify-center gap-1 rounded-full bg-teal-500/10 px-3 py-1.5 text-xs font-semibold text-[#0F766E] dark:text-emerald-300">
                             <Check className="h-3.5 w-3.5" />
-                            Tudo Recebido!
+                            Concluído
                           </span>
                         )}
 
                         <button
                           type="button"
                           onClick={() => handleDeleteReceivable(rec)}
-                          className="pressable rounded-lg border border-rose-500/20 bg-[#1B0E18] p-1.5 text-rose-300/70 hover:border-rose-400 hover:text-white"
+                          className="pressable rounded-lg p-1.5 text-ink-muted hover:bg-rose-500/10 hover:text-[#BE123C]"
                           title="Excluir registro"
                         >
                           <Trash2 className="h-3.5 w-3.5" />

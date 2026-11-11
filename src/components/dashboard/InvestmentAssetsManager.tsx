@@ -1,18 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import {
-  Building2,
-  Check,
-  Clock,
-  Landmark,
-  Pencil,
-  Plus,
-  Sparkles,
-  Trash2,
-  TrendingUp,
-  X,
-} from "lucide-react";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { roundCurrency } from "@/lib/domain/financial-engine";
 import {
@@ -178,8 +167,8 @@ export function InvestmentAssetsManager({
 
       toast.success(
         editingId
-          ? `✨ Ativo atualizado: ${payloadAsset.nome}`
-          : `✨ Novo ativo adicionado: ${payloadAsset.nome}`,
+          ? `Ativo atualizado: ${payloadAsset.nome}`
+          : `Novo ativo adicionado: ${payloadAsset.nome}`,
         {
           description: `${payloadAsset.tipo_ativo} • Rende ${payloadAsset.rendimento} • Meta: ${payloadAsset.meta_vinculada}`,
         }
@@ -228,49 +217,42 @@ export function InvestmentAssetsManager({
   return (
     <section
       aria-label="Nossos Ativos e Rendimentos"
-      className="animate-enter delay-2 rounded-2xl border border-rose-500/20 bg-[#1B0E18] p-5 shadow-lg shadow-rose-950/20"
+      className="animate-enter delay-2 surface-card rounded-2xl overflow-hidden"
     >
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {/* Editorial Header */}
+      <div className="flex flex-col gap-3 border-b border-hairline px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500/25 to-pink-500/25 text-rose-300 border border-rose-400/30">
-              <TrendingUp className="h-4 w-4" />
-            </span>
-            <h2 className="text-base font-semibold text-white">
-              Nossos Ativos de Investimento & Quanto Rendem
-            </h2>
-          </div>
-          <p className="mt-1 text-xs text-rose-200/75">
-            Adicione ou edite cada aplicação (CDB, Tesouro, LCI/LCA, Caixinha,
-            FII, Ações), acompanhe a taxa de rendimento e o saldo atualizado das
-            metas
+          <h2 className="font-editorial text-xl italic tracking-tight text-ink">
+            Carteira de Ativos &amp; Rendimentos
+          </h2>
+          <p className="mt-0.5 text-xs text-ink-secondary">
+            Aplicações vinculadas às nossas metas, indexadores de rentabilidade e liquidez
           </p>
         </div>
 
         <button
           type="button"
           onClick={openNewAssetForm}
-          className="pressable inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 px-3.5 py-2 text-xs font-semibold text-white shadow-md shadow-rose-500/20 hover:from-rose-400 hover:to-pink-400"
+          className="pressable inline-flex items-center justify-center gap-1.5 rounded-full bg-[#BE123C] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-95"
         >
-          <Plus className="h-4 w-4" />
-          <span>Novo Ativo de Investimento</span>
+          <Plus className="h-3.5 w-3.5" />
+          <span>Novo Ativo</span>
         </button>
       </div>
 
-      {/* Goal Filter Tabs + Summary Pill */}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-b border-rose-500/15 pb-3">
+      {/* Goal Filter Pills + Portfolio Summary */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-[var(--bg-subtle)]/40 px-6 py-3">
         <div className="flex flex-wrap items-center gap-1.5">
           <button
             type="button"
             onClick={() => setSelectedGoalFilter("ALL")}
-            className={`pressable rounded-lg px-2.5 py-1 text-xs font-medium ${
+            className={`pressable rounded-full px-3 py-1 text-xs font-medium transition-all ${
               selectedGoalFilter === "ALL"
-                ? "bg-rose-500/25 text-rose-100 border border-rose-400/40"
-                : "text-rose-200/70 hover:text-white bg-[#120910]/60 border border-rose-500/10"
+                ? "bg-[#BE123C] text-white font-semibold"
+                : "surface-card text-ink-secondary hover:text-ink"
             }`}
           >
-            Todos os Ativos ({assets.length})
+            Todos ({assets.length})
           </button>
           {availableGoalNames.map((goalName) => {
             const count = assets.filter(
@@ -281,10 +263,10 @@ export function InvestmentAssetsManager({
                 key={goalName}
                 type="button"
                 onClick={() => setSelectedGoalFilter(goalName)}
-                className={`pressable rounded-lg px-2.5 py-1 text-xs font-medium ${
+                className={`pressable rounded-full px-3 py-1 text-xs font-medium transition-all ${
                   selectedGoalFilter === goalName
-                    ? "bg-pink-500/25 text-pink-100 border border-pink-400/40"
-                    : "text-rose-200/70 hover:text-white bg-[#120910]/60 border border-rose-500/10"
+                    ? "bg-[#BE123C] text-white font-semibold"
+                    : "surface-card text-ink-secondary hover:text-ink"
                 }`}
               >
                 {goalName} ({count})
@@ -293,18 +275,21 @@ export function InvestmentAssetsManager({
           })}
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 text-xs tabular-nums">
-          <span className="text-rose-200/75">
+        <div className="flex flex-wrap items-center gap-4 text-xs tabular-nums">
+          <span className="text-ink-secondary">
             Aplicado:{" "}
-            <strong className="text-white">{formatBRL(totals.aportado)}</strong>
+            <strong className="font-semibold text-ink">
+              {formatBRL(totals.aportado)}
+            </strong>
           </span>
-          <span className="text-rose-200/75">
+          <span className="text-ink-secondary">
             Saldo Atual:{" "}
-            <strong className="text-pink-200">{formatBRL(totals.saldo)}</strong>
+            <strong className="font-semibold text-ink">
+              {formatBRL(totals.saldo)}
+            </strong>
           </span>
-          <span className="rounded-lg border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 font-semibold text-emerald-300">
-            Rendeu {formatBRL(totals.ganho, true)} ({formatPct(totals.ganhoPct)}
-            )
+          <span className="font-semibold text-[#0F766E] dark:text-emerald-400">
+            {formatBRL(totals.ganho, true)} ({formatPct(totals.ganhoPct)})
           </span>
         </div>
       </div>
@@ -313,11 +298,10 @@ export function InvestmentAssetsManager({
       {isFormOpen && (
         <form
           onSubmit={handleSaveAsset}
-          className="mt-4 rounded-2xl border border-rose-400/35 bg-[#120910]/95 p-4 shadow-xl"
+          className="border-b border-hairline bg-[var(--bg-subtle)]/60 p-6"
         >
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-rose-200 flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-rose-400" />
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.06em] text-ink">
               {editingId
                 ? "Editar Ativo de Investimento"
                 : "Cadastrar Novo Ativo de Investimento"}
@@ -325,16 +309,15 @@ export function InvestmentAssetsManager({
             <button
               type="button"
               onClick={() => setIsFormOpen(false)}
-              className="pressable rounded-lg p-1 text-rose-200/60 hover:bg-rose-500/15 hover:text-white"
+              className="pressable rounded-lg p-1 text-ink-muted hover:text-ink"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Nome */}
             <div className="sm:col-span-2">
-              <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
+              <label className="block text-[11px] font-medium text-ink-secondary mb-1">
                 Nome da Aplicação / Ativo
               </label>
               <input
@@ -343,13 +326,12 @@ export function InvestmentAssetsManager({
                 value={form.nome}
                 onChange={(e) => setForm({ ...form, nome: e.target.value })}
                 placeholder="Ex: CDB Itaú Casa Própria, Tesouro IPCA+ 2029..."
-                className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white placeholder:text-rose-200/40 focus:border-rose-400 focus:outline-none"
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none"
               />
             </div>
 
-            {/* Tipo de Ativo */}
             <div>
-              <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
+              <label className="block text-[11px] font-medium text-ink-secondary mb-1">
                 Tipo de Ativo
               </label>
               <select
@@ -360,20 +342,26 @@ export function InvestmentAssetsManager({
                     tipo_ativo: e.target.value as AssetType,
                   })
                 }
-                className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white focus:border-rose-400 focus:outline-none"
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#BE123C] focus:outline-none"
               >
                 {ASSET_TYPES.map((t) => (
-                  <option key={t} value={t} className="bg-[#1B0E18] text-white">
+                  <option
+                    key={t}
+                    value={t}
+                    style={{
+                      backgroundColor: "var(--bg-surface)",
+                      color: "var(--text-primary)",
+                    }}
+                  >
                     {t}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Quanto Rende */}
             <div>
-              <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
-                Quanto Rende (Taxa)
+              <label className="block text-[11px] font-medium text-ink-secondary mb-1">
+                Taxa de Rendimento
               </label>
               <input
                 type="text"
@@ -382,15 +370,14 @@ export function InvestmentAssetsManager({
                 onChange={(e) =>
                   setForm({ ...form, rendimento: e.target.value })
                 }
-                placeholder="Ex: 112% do CDI ou IPCA + 6,5%"
-                className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white placeholder:text-rose-200/40 focus:border-rose-400 focus:outline-none"
+                placeholder="Ex: 112% do CDI ou IPCA + 6,45% a.a."
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none"
               />
             </div>
 
-            {/* Instituição */}
             <div>
-              <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
-                Banco / Corretora
+              <label className="block text-[11px] font-medium text-ink-secondary mb-1">
+                Instituição
               </label>
               <input
                 type="text"
@@ -398,28 +385,26 @@ export function InvestmentAssetsManager({
                 onChange={(e) =>
                   setForm({ ...form, instituicao: e.target.value })
                 }
-                placeholder="Ex: Nubank, Itaú, XP, Inter..."
-                className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white placeholder:text-rose-200/40 focus:border-rose-400 focus:outline-none"
+                placeholder="Ex: Itaú, Nubank, XP..."
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none"
               />
             </div>
 
-            {/* Liquidez */}
             <div>
-              <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
-                Quando pode resgatar (Liquidez)
+              <label className="block text-[11px] font-medium text-ink-secondary mb-1">
+                Liquidez
               </label>
               <input
                 type="text"
                 value={form.liquidez}
                 onChange={(e) => setForm({ ...form, liquidez: e.target.value })}
-                placeholder="Ex: Diária imediata, No vencimento..."
-                className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white placeholder:text-rose-200/40 focus:border-rose-400 focus:outline-none"
+                placeholder="Ex: Diária, No vencimento..."
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none"
               />
             </div>
 
-            {/* Meta Vinculada */}
             <div>
-              <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
+              <label className="block text-[11px] font-medium text-ink-secondary mb-1">
                 Meta Vinculada
               </label>
               <select
@@ -427,13 +412,16 @@ export function InvestmentAssetsManager({
                 onChange={(e) =>
                   setForm({ ...form, meta_vinculada: e.target.value })
                 }
-                className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white focus:border-rose-400 focus:outline-none"
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#BE123C] focus:outline-none"
               >
                 {availableGoalNames.map((gName) => (
                   <option
                     key={gName}
                     value={gName}
-                    className="bg-[#1B0E18] text-white"
+                    style={{
+                      backgroundColor: "var(--bg-surface)",
+                      color: "var(--text-primary)",
+                    }}
                   >
                     {gName}
                   </option>
@@ -441,10 +429,9 @@ export function InvestmentAssetsManager({
               </select>
             </div>
 
-            {/* Titular */}
             <div>
-              <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
-                Titular da Conta
+              <label className="block text-[11px] font-medium text-ink-secondary mb-1">
+                Titular
               </label>
               <select
                 value={form.titular}
@@ -457,24 +444,17 @@ export function InvestmentAssetsManager({
                       | "Maria Luiza",
                   })
                 }
-                className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white focus:border-rose-400 focus:outline-none"
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#BE123C] focus:outline-none"
               >
-                <option value="Casal" className="bg-[#1B0E18] text-white">
-                  Casal (Conjunto)
-                </option>
-                <option value="Giovanni" className="bg-[#1B0E18] text-white">
-                  Giovanni
-                </option>
-                <option value="Maria Luiza" className="bg-[#1B0E18] text-white">
-                  Maria Luiza
-                </option>
+                <option value="Casal">Casal</option>
+                <option value="Giovanni">Giovanni</option>
+                <option value="Maria Luiza">Maria Luiza</option>
               </select>
             </div>
 
-            {/* Valor Aplicado */}
             <div>
-              <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
-                Valor Aplicado do Bolso (R$)
+              <label className="block text-[11px] font-medium text-ink-secondary mb-1">
+                Valor Aplicado (R$)
               </label>
               <input
                 type="number"
@@ -486,14 +466,13 @@ export function InvestmentAssetsManager({
                   setForm({ ...form, valor_aportado: e.target.value })
                 }
                 placeholder="Ex: 5000"
-                className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white placeholder:text-rose-200/40 focus:border-rose-400 focus:outline-none tabular-nums"
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none tabular-nums"
               />
             </div>
 
-            {/* Saldo Atual com Rendimento */}
             <div>
-              <label className="block text-[11px] font-medium text-rose-200/80 mb-1">
-                Saldo Atual com Rendimentos (R$)
+              <label className="block text-[11px] font-medium text-ink-secondary mb-1">
+                Saldo Atual Bruto (R$)
               </label>
               <input
                 type="number"
@@ -505,7 +484,7 @@ export function InvestmentAssetsManager({
                   setForm({ ...form, saldo_atual: e.target.value })
                 }
                 placeholder="Ex: 5420"
-                className="w-full rounded-xl border border-rose-400/25 bg-[#1B0E18] px-3 py-2 text-xs text-white placeholder:text-rose-200/40 focus:border-rose-400 focus:outline-none tabular-nums"
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#BE123C] focus:outline-none tabular-nums"
               />
             </div>
           </div>
@@ -514,14 +493,14 @@ export function InvestmentAssetsManager({
             <button
               type="button"
               onClick={() => setIsFormOpen(false)}
-              className="pressable rounded-xl border border-rose-400/20 bg-transparent px-3.5 py-1.5 text-xs font-medium text-rose-200 hover:bg-rose-500/10"
+              className="pressable surface-card rounded-full px-4 py-1.5 text-xs font-medium text-ink-secondary hover:text-ink"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="pressable inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 px-4 py-1.5 text-xs font-semibold text-white shadow-md shadow-rose-500/20 hover:from-rose-400 hover:to-pink-400 disabled:opacity-50"
+              className="pressable inline-flex items-center gap-1.5 rounded-full bg-[#BE123C] px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
             >
               <Check className="h-3.5 w-3.5" />
               <span>
@@ -536,19 +515,18 @@ export function InvestmentAssetsManager({
         </form>
       )}
 
-      {/* Assets Cards Grid */}
+      {/* Editorial Assets List (Divided Rows / Clean Table-like Layout) */}
       {filteredAssets.length === 0 ? (
-        <div className="mt-4 rounded-xl border border-rose-500/15 bg-[#120910]/60 p-8 text-center">
-          <p className="text-sm font-medium text-rose-100">
+        <div className="p-10 text-center">
+          <p className="text-sm font-medium text-ink">
             Nenhum ativo cadastrado para esta meta ainda.
           </p>
-          <p className="mt-1 text-xs text-rose-200/60">
-            Clique em &ldquo;Novo Ativo de Investimento&rdquo; para cadastrar um
-            CDB, Tesouro Direto, LCI/LCA ou Caixinha.
+          <p className="mt-1 text-xs text-ink-muted">
+            Clique em &ldquo;Novo Ativo&rdquo; para registrar um CDB, Tesouro Direto, LCI/LCA ou Caixinha.
           </p>
         </div>
       ) : (
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div className="divide-y divide-hairline">
           {filteredAssets.map((asset) => {
             const ganho = roundCurrency(
               asset.saldo_atual - asset.valor_aportado
@@ -561,94 +539,85 @@ export function InvestmentAssetsManager({
             return (
               <article
                 key={asset.id}
-                className="flex flex-col justify-between rounded-xl border border-rose-500/20 bg-[#120910]/80 p-4 transition-colors hover:border-rose-400/40"
+                className="flex flex-col justify-between gap-4 px-6 py-4 transition-colors hover:bg-[var(--bg-subtle)]/35 lg:flex-row lg:items-center"
               >
-                <div>
-                  {/* Top Badges: Asset Type + Yield Rate */}
-                  <div className="flex flex-wrap items-center justify-between gap-1.5">
-                    <span className="inline-flex items-center gap-1 rounded-md border border-pink-400/30 bg-pink-500/15 px-2 py-0.5 text-[10px] font-semibold text-pink-200">
-                      <Landmark className="h-2.5 w-2.5" />
-                      {asset.tipo_ativo}
-                    </span>
-
-                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/35 bg-gradient-to-r from-rose-500/20 to-amber-500/20 px-2.5 py-0.5 text-[11px] font-semibold text-amber-200">
-                      📈 Rende {asset.rendimento}
-                    </span>
-                  </div>
-
-                  {/* Asset Title */}
-                  <h3 className="mt-2.5 text-sm font-semibold text-white leading-snug">
-                    {asset.nome}
-                  </h3>
-
-                  {/* Institution, Liquidity & Goal */}
-                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-rose-200/75">
-                    <span className="inline-flex items-center gap-1">
-                      <Building2 className="h-3 w-3 text-rose-400" />
+                {/* Left: Asset Name + Institution + Type Tag + Yield Rate */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm font-semibold text-ink">
+                      {asset.nome}
+                    </h3>
+                    <span className="text-xs text-ink-muted">·</span>
+                    <span className="text-xs font-medium text-ink-secondary">
                       {asset.instituicao}
                     </span>
-                    <span>•</span>
-                    <span className="inline-flex items-center gap-1">
-                      <Clock className="h-3 w-3 text-pink-400" />
-                      Liquidez: {asset.liquidez}
+                    <span className="surface-subtle rounded-md px-2 py-0.5 text-[11px] font-medium text-ink">
+                      {asset.tipo_ativo}
+                    </span>
+                    <span className="surface-rose-tint rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-[#BE123C] dark:text-[#FB7185]">
+                      {asset.rendimento}
                     </span>
                   </div>
 
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
-                    <span className="rounded border border-rose-400/20 bg-rose-500/10 px-2 py-0.5 font-medium text-rose-200">
-                      Meta: {asset.meta_vinculada}
-                    </span>
-                    <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-0.5 text-rose-100/80">
-                      Titular: {asset.titular}
-                    </span>
-                  </div>
+                  <p className="mt-1 text-xs text-ink-secondary">
+                    Meta:{" "}
+                    <strong className="font-medium text-ink">
+                      {asset.meta_vinculada}
+                    </strong>{" "}
+                    · Liquidez: {asset.liquidez} · Titular: {asset.titular}
+                  </p>
                 </div>
 
-                {/* Financial Figures + Actions */}
-                <div className="mt-3.5 border-t border-rose-500/15 pt-3">
-                  <div className="grid grid-cols-3 gap-2 text-xs tabular-nums">
-                    <div>
-                      <span className="block text-[10px] text-rose-200/60">
+                {/* Right: Applied -> Current Balance (+Gain) + Discreet Actions */}
+                <div className="flex flex-wrap items-center justify-between gap-5 lg:justify-end shrink-0">
+                  <div className="flex items-center gap-3 text-xs tabular-nums">
+                    <div className="text-right">
+                      <span className="block text-[10px] uppercase tracking-wider text-ink-muted">
                         Aplicado
                       </span>
-                      <span className="font-medium text-rose-100">
+                      <span className="font-medium text-ink-secondary">
                         {formatBRL(asset.valor_aportado)}
                       </span>
                     </div>
-                    <div>
-                      <span className="block text-[10px] text-rose-200/60">
+
+                    <span className="text-ink-muted">→</span>
+
+                    <div className="text-right">
+                      <span className="block text-[10px] uppercase tracking-wider text-ink-muted">
                         Saldo Atual
                       </span>
-                      <span className="font-bold text-white">
+                      <span className="text-sm font-semibold tracking-[-0.02em] text-ink">
                         {formatBRL(asset.saldo_atual)}
                       </span>
                     </div>
-                    <div className="text-right">
-                      <span className="block text-[10px] text-rose-200/60">
-                        Ganho
+
+                    <div className="min-w-[96px] text-right">
+                      <span className="block text-[10px] uppercase tracking-wider text-ink-muted">
+                        Rendimento
                       </span>
-                      <span className="font-semibold text-emerald-300">
+                      <span className="font-semibold text-[#0F766E] dark:text-emerald-400">
                         {formatBRL(ganho, true)} ({formatPct(ganhoPct)})
                       </span>
                     </div>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-end gap-1.5">
+                  <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => openEditAssetForm(asset)}
-                      className="pressable inline-flex items-center gap-1 rounded-lg border border-rose-400/25 bg-rose-500/10 px-2.5 py-1 text-[11px] font-medium text-rose-100 hover:bg-rose-500/20"
+                      className="pressable inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-ink-secondary hover:bg-[var(--bg-subtle)] hover:text-ink"
                     >
-                      <Pencil className="h-3 w-3 text-rose-300" />
-                      <span>Modificar</span>
+                      <Pencil className="h-3 w-3" />
+                      <span>Editar</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDeleteAsset(asset)}
-                      className="pressable inline-flex items-center gap-1 rounded-lg border border-rose-500/20 bg-[#1B0E18] px-2 py-1 text-[11px] font-medium text-rose-300/80 hover:border-rose-400 hover:bg-rose-500/20 hover:text-white"
+                      className="pressable inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-ink-muted hover:bg-rose-500/10 hover:text-[#BE123C]"
                       title="Remover ativo"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span className="sr-only">Remover</span>
                     </button>
                   </div>
                 </div>
