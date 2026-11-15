@@ -306,7 +306,10 @@ export default function NinhoDashboardPage() {
               className="animate-enter delay-1 grid grid-cols-1 gap-6 lg:grid-cols-2"
             >
               <MacroAllocationChart allocation={allocation} />
-              <InvestmentGoalsChart goals={payload.investimentos} />
+              <InvestmentGoalsChart
+                goals={payload.investimentos}
+                assets={payload.ativos ?? []}
+              />
             </section>
 
             <DynamicAllocationTable
@@ -341,7 +344,10 @@ export default function NinhoDashboardPage() {
         {/* TAB 3: INVESTIMENTOS & ATIVOS */}
         {activeWorkspaceTab === "INVESTMENTS" && (
           <div className="space-y-6">
-            <InvestmentGoalsChart goals={payload.investimentos} />
+            <InvestmentGoalsChart
+                goals={payload.investimentos}
+                assets={payload.ativos ?? []}
+              />
             <InvestmentAssetsManager
               assets={payload.ativos ?? []}
               goals={payload.investimentos}
@@ -383,7 +389,10 @@ export default function NinhoDashboardPage() {
               className="animate-enter delay-1 grid grid-cols-1 gap-6 lg:grid-cols-2"
             >
               <MacroAllocationChart allocation={allocation} />
-              <InvestmentGoalsChart goals={payload.investimentos} />
+              <InvestmentGoalsChart
+                goals={payload.investimentos}
+                assets={payload.ativos ?? []}
+              />
             </section>
 
             <DynamicAllocationTable

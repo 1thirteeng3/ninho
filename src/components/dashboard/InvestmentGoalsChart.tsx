@@ -9,7 +9,11 @@ import {
   Tooltip,
 } from "recharts";
 import { roundCurrency } from "@/lib/domain/financial-engine";
-import type { Category, InvestmentGoal } from "@/lib/domain/types";
+import type {
+  Category,
+  InvestmentAsset,
+  InvestmentGoal,
+} from "@/lib/domain/types";
 import {
   CATEGORY_COLORS,
   formatBRL,
@@ -18,6 +22,7 @@ import {
 
 interface InvestmentGoalsChartProps {
   goals: InvestmentGoal[];
+  assets?: InvestmentAsset[];
 }
 
 interface GoalChartDatum {
@@ -89,33 +94,103 @@ function CustomGoalTooltip({ active, payload }: CustomGoalTooltipProps) {
   );
 }
 
-export function InvestmentGoalsChart({ goals }: InvestmentGoalsChartProps) {
+function matchesGoalName(assetGoal: string, goalName: string): boolean {
+  const linked = assetGoal.trim().toLowerCase();
+  const target = goalName.trim().toLowerCase();
+  if (!linked || !target) return false;
+  return (
+    linked === target ||
+    (target.includes("estudos") && linked.includes("estudos")) ||
+    (target.includes("reserva") && linked.includes("reserva"))
+  );
+}
+
+export function InvestmentGoalsChart({
+  goals,
+  assets = [],
+}: InvestmentGoalsChartProps) {
+  const effectiveGoals = useMemo<InvestmentGoal[]>(() => {
+    const matchedAssetIds = new Set<string>();
+
+    const syncedGoals = goals.map((g) => {
+      const linkedAssets = assets.filter((a) =>
+        matchesGoalName(a.meta_vinculada, g.nome)
+      );
+      if (linkedAssets.length === 0) {
+        return g;
+      }
+      linkedAssets.forEach((a) => matchedAssetIds.add(a.id));
+      const sumAportado = roundCurrency(
+        linkedAssets.reduce((acc, a) => acc + a.valor_aportado, 0)
+      );
+      const sumSaldo = roundCurrency(
+        linkedAssets.reduce((acc, a) => acc + a.saldo_atual, 0)
+      );
+      return {
+        ...g,
+        total_aportado: sumAportado,
+        saldo_bruto_atual: sumSaldo,
+      };
+    });
+
+    const unlinkedMap = new Map<string, InvestmentAsset[]>();
+    assets.forEach((a) => {
+      if (matchedAssetIds.has(a.id)) return;
+      const key = (a.meta_vinculada || "Reserva & Patrimônio").trim();
+      const list = unlinkedMap.get(key) ?? [];
+      list.push(a);
+      unlinkedMap.set(key, list);
+    });
+
+    const syntheticGoals: InvestmentGoal[] = Array.from(
+      unlinkedMap.entries()
+    ).map(([metaName, groupAssets], idx) => {
+      const sumAportado = roundCurrency(
+        groupAssets.reduce((acc, a) => acc + a.valor_aportado, 0)
+      );
+      const sumSaldo = roundCurrency(
+        groupAssets.reduce((acc, a) => acc + a.saldo_atual, 0)
+      );
+      const isConsumption = /viagem|estudos/i.test(metaName);
+      return {
+        id_meta: `ASSET-GRP-${idx}`,
+        nome: metaName,
+        tipo: isConsumption ? "OBJETIVO_CONSUMO" : "PATRIMONIO",
+        valor_alvo: 0,
+        total_aportado: sumAportado,
+        saldo_bruto_atual: sumSaldo,
+      };
+    });
+
+    return [...syncedGoals, ...syntheticGoals];
+  }, [goals, assets]);
+
   const summary = useMemo(() => {
     const totalBruto = roundCurrency(
-      goals.reduce((acc, g) => acc + g.saldo_bruto_atual, 0)
+      effectiveGoals.reduce((acc, g) => acc + g.saldo_bruto_atual, 0)
     );
     const totalAportado = roundCurrency(
-      goals.reduce((acc, g) => acc + g.total_aportado, 0)
+      effectiveGoals.reduce((acc, g) => acc + g.total_aportado, 0)
     );
     const totalAlvo = roundCurrency(
-      goals.reduce((acc, g) => acc + g.valor_alvo, 0)
+      effectiveGoals.reduce((acc, g) => acc + g.valor_alvo, 0)
     );
     const rendimentoTotal = roundCurrency(totalBruto - totalAportado);
 
     const patrimonioBruto = roundCurrency(
-      goals
+      effectiveGoals
         .filter((g) => g.tipo === "PATRIMONIO")
         .reduce((acc, g) => acc + g.saldo_bruto_atual, 0)
     );
     const consumoDiferidoBruto = roundCurrency(
-      goals
+      effectiveGoals
         .filter((g) => g.tipo === "OBJETIVO_CONSUMO")
         .reduce((acc, g) => acc + g.saldo_bruto_atual, 0)
     );
 
     const palette = ["#FF3B9A", "#EC4899", "#C084FC", "#10B981", "#FBBF24"];
 
-    const data: GoalChartDatum[] = goals.map((g, idx) => {
+    const data: GoalChartDatum[] = effectiveGoals.map((g, idx) => {
       const rendimento = roundCurrency(g.saldo_bruto_atual - g.total_aportado);
       const progressoPct =
         g.valor_alvo > 0

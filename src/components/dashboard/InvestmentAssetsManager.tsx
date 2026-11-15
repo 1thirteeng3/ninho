@@ -1,9 +1,13 @@
 ﻿"use client";
 
-import React, { useMemo, useState } from "react";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Check, Pencil, Plus, Trash2, TrendingUp, X } from "lucide-react";
 import { toast } from "sonner";
 import { roundCurrency } from "@/lib/domain/financial-engine";
+import {
+  calculateAssetProjection,
+  DEFAULT_CDI_ANNUAL_PCT,
+} from "@/lib/domain/yield-calculator";
 import {
   AssetTypeSchema,
   type AssetType,
@@ -40,19 +44,30 @@ interface AssetFormState {
   titular: "Casal" | "Giovanni" | "Maria Luiza";
   valor_aportado: string;
   saldo_atual: string;
+  aporte_mensal: string;
+  reinvestimento_automatico: boolean;
+  data_atualizacao: string;
+}
+
+function getTodayISO(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
 const EMPTY_FORM: AssetFormState = {
   id: "",
   nome: "",
   tipo_ativo: "CDB",
-  rendimento: "110% do CDI",
+  rendimento: "100% do CDI",
   liquidez: "Diária",
   instituicao: "Nubank",
   meta_vinculada: "Casa",
   titular: "Casal",
   valor_aportado: "",
   saldo_atual: "",
+  aporte_mensal: "0",
+  reinvestimento_automatico: true,
+  data_atualizacao: "",
 };
 
 export function InvestmentAssetsManager({
@@ -66,6 +81,30 @@ export function InvestmentAssetsManager({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<AssetFormState>(EMPTY_FORM);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [cdiAnnualPct, setCdiAnnualPct] = useState<number>(DEFAULT_CDI_ANNUAL_PCT);
+  const [contributingAssetId, setContributingAssetId] = useState<string | null>(null);
+  const [contributionAmount, setContributionAmount] = useState<string>("");
+  const [recordAsTx, setRecordAsTx] = useState<boolean>(true);
+  const [isSubmittingContribution, setIsSubmittingContribution] = useState<boolean>(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.4389/dados/ultimos/1?formato=json")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: Array<{ valor?: string }> | null) => {
+        if (!active || !Array.isArray(data) || !data[0]?.valor) return;
+        const parsed = parseFloat(String(data[0].valor).replace(",", "."));
+        if (Number.isFinite(parsed) && parsed > 0) {
+          setCdiAnnualPct(roundCurrency(parsed));
+        }
+      })
+      .catch(() => {
+        // Mantém fallback padrão se offline/bloqueado
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filteredAssets = useMemo(() => {
     if (selectedGoalFilter === "ALL") {
@@ -94,6 +133,7 @@ export function InvestmentAssetsManager({
       ...EMPTY_FORM,
       meta_vinculada:
         selectedGoalFilter !== "ALL" ? selectedGoalFilter : "Casa",
+      data_atualizacao: getTodayISO(),
     });
     setIsFormOpen(true);
   }
@@ -111,6 +151,9 @@ export function InvestmentAssetsManager({
       titular: asset.titular,
       valor_aportado: String(asset.valor_aportado),
       saldo_atual: String(asset.saldo_atual),
+      aporte_mensal: String(asset.aporte_mensal ?? 0),
+      reinvestimento_automatico: asset.reinvestimento_automatico !== false,
+      data_atualizacao: asset.data_atualizacao || getTodayISO(),
     });
     setIsFormOpen(true);
   }
@@ -121,6 +164,9 @@ export function InvestmentAssetsManager({
     const valorAportado = Number(form.valor_aportado.replace(",", "."));
     const saldoAtual = Number(
       (form.saldo_atual.trim() || form.valor_aportado).replace(",", ".")
+    );
+    const aporteMensal = Number(
+      (form.aporte_mensal.trim() || "0").replace(",", ".")
     );
 
     if (!nome) {
@@ -149,6 +195,9 @@ export function InvestmentAssetsManager({
         titular: form.titular,
         valor_aportado: roundCurrency(valorAportado),
         saldo_atual: roundCurrency(saldoAtual),
+        aporte_mensal: Number.isFinite(aporteMensal) && aporteMensal > 0 ? roundCurrency(aporteMensal) : 0,
+        reinvestimento_automatico: form.reinvestimento_automatico,
+        data_atualizacao: form.data_atualizacao.trim() || getTodayISO(),
       };
 
       const res = await fetch("/api/sheets", {
@@ -209,10 +258,79 @@ export function InvestmentAssetsManager({
     }
   }
 
+  async function handleQuickContribution(asset: InvestmentAsset) {
+    const amount = Number(contributionAmount.replace(",", "."));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Informe um valor de aporte válido.");
+      return;
+    }
+    setIsSubmittingContribution(true);
+    try {
+      const updatedAsset: InvestmentAsset = {
+        ...asset,
+        valor_aportado: roundCurrency(asset.valor_aportado + amount),
+        saldo_atual: roundCurrency(asset.saldo_atual + amount),
+        data_atualizacao: getTodayISO(),
+      };
+      const res = await fetch("/api/sheets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "UPSERT_ASSET",
+          asset: updatedAsset,
+          mode: dataSourceMode,
+        }),
+      });
+      if (!res.ok) throw new Error("Falha ao registrar aporte no ativo.");
+
+      if (recordAsTx) {
+        const pagoPor = asset.titular === "Maria Luiza" ? "Maria Luiza" : "Giovanni";
+        await fetch("/api/sheets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: dataSourceMode,
+            data_competencia: getTodayISO(),
+            tipo_fluxo: "INVESTIMENTO",
+            categoria:
+              GOAL_OPTIONS.includes(asset.meta_vinculada)
+                ? asset.meta_vinculada
+                : "Reserva & Patrimônio",
+            valor: roundCurrency(amount),
+            conta: asset.instituicao || "Banco",
+            total_parcelas: 1,
+            pago_por: pagoPor,
+            escopo:
+              asset.titular === "Casal"
+                ? "CONJUNTO"
+                : asset.titular === "Giovanni"
+                  ? "INDIVIDUAL_GIOVANNI"
+                  : "INDIVIDUAL_MARIA_LUIZA",
+            descricao: `Aporte: ${asset.nome}`,
+          }),
+        });
+      }
+
+      toast.success(`Aporte de ${formatBRL(amount)} somado em ${asset.nome}`);
+      setContributingAssetId(null);
+      setContributionAmount("");
+      await onDataChanged();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao registrar aporte."
+      );
+    } finally {
+      setIsSubmittingContribution(false);
+    }
+  }
+
   const availableGoalNames = useMemo(() => {
     const fromGoals = goals.map((g) => String(g.nome));
-    return Array.from(new Set([...GOAL_OPTIONS, ...fromGoals]));
-  }, [goals]);
+    const fromAssets = assets
+      .map((a) => String(a.meta_vinculada || "").trim())
+      .filter(Boolean);
+    return Array.from(new Set([...GOAL_OPTIONS, ...fromGoals, ...fromAssets]));
+  }, [goals, assets]);
 
   return (
     <section
@@ -487,6 +605,54 @@ export function InvestmentAssetsManager({
                 className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#EC4899] focus:outline-none tabular-nums"
               />
             </div>
+
+            <div>
+              <label className="block text-[11px] font-medium text-ink-secondary mb-1">
+                Aporte Mensal Previsto (R$)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.aporte_mensal}
+                onChange={(e) =>
+                  setForm({ ...form, aporte_mensal: e.target.value })
+                }
+                placeholder="Ex: 1000"
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-[#EC4899] focus:outline-none tabular-nums"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-medium text-ink-secondary mb-1">
+                Data de Referência do Saldo
+              </label>
+              <input
+                type="date"
+                value={form.data_atualizacao}
+                onChange={(e) =>
+                  setForm({ ...form, data_atualizacao: e.target.value })
+                }
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#EC4899] focus:outline-none tabular-nums"
+              />
+            </div>
+
+            <div className="flex items-end pb-1">
+              <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-ink">
+                <input
+                  type="checkbox"
+                  checked={form.reinvestimento_automatico}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      reinvestimento_automatico: e.target.checked,
+                    })
+                  }
+                  className="h-4 w-4 rounded accent-[#EC4899]"
+                />
+                <span>Reinvestimento automático (juros compostos)</span>
+              </label>
+            </div>
           </div>
 
           <div className="mt-4 flex items-center justify-end gap-2">
@@ -535,92 +701,175 @@ export function InvestmentAssetsManager({
               asset.valor_aportado > 0
                 ? roundCurrency((ganho / asset.valor_aportado) * 100)
                 : 0;
+            const projection = calculateAssetProjection(asset, cdiAnnualPct);
+            const isContributing = contributingAssetId === asset.id;
 
             return (
               <article
                 key={asset.id}
-                className="flex flex-col justify-between gap-4 px-6 py-4 transition-colors hover:bg-[var(--bg-subtle)]/35 lg:flex-row lg:items-center"
+                className="px-6 py-4 transition-colors hover:bg-[var(--bg-subtle)]/35"
               >
-                {/* Left: Asset Name + Institution + Type Tag + Yield Rate */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-sm font-semibold text-ink">
-                      {asset.nome}
-                    </h3>
-                    <span className="text-xs text-ink-muted">·</span>
-                    <span className="text-xs font-medium text-ink-secondary">
-                      {asset.instituicao}
-                    </span>
-                    <span className="surface-subtle rounded-md px-2 py-0.5 text-[11px] font-medium text-ink">
-                      {asset.tipo_ativo}
-                    </span>
-                    <span className="surface-rose-tint rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-[#EC4899] dark:text-[#FB7185]">
-                      {asset.rendimento}
-                    </span>
+                <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+                  {/* Left: Asset Name + Institution + Type Tag + Yield Rate */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-sm font-semibold text-ink">
+                        {asset.nome}
+                      </h3>
+                      <span className="text-xs text-ink-muted">·</span>
+                      <span className="text-xs font-medium text-ink-secondary">
+                        {asset.instituicao}
+                      </span>
+                      <span className="surface-subtle rounded-md px-2 py-0.5 text-[11px] font-medium text-ink">
+                        {asset.tipo_ativo}
+                      </span>
+                      <span className="surface-rose-tint rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-[#EC4899] dark:text-[#FB7185]">
+                        {asset.rendimento}
+                      </span>
+                    </div>
+
+                    <p className="mt-1 text-xs text-ink-secondary">
+                      Meta:{" "}
+                      <strong className="font-medium text-ink">
+                        {asset.meta_vinculada}
+                      </strong>{" "}
+                      · Liquidez: {asset.liquidez} · Titular: {asset.titular}
+                      {(asset.aporte_mensal ?? 0) > 0 && (
+                        <> · Aporte mensal: {formatBRL(asset.aporte_mensal ?? 0)}/mês</>
+                      )}
+                    </p>
+
+                    {projection.parsed.isRecognized && (
+                      <p className="mt-1 inline-flex flex-wrap items-center gap-2 text-[11px] text-ink-muted tabular-nums">
+                        <span className="inline-flex items-center gap-1 font-medium text-[#0F766E] dark:text-emerald-400">
+                          <TrendingUp className="h-3 w-3" />
+                          Est. {formatBRL(projection.estimatedMonthlyYieldBRL)}/mês ({formatPct(projection.parsed.monthlyRatePct)} a.m. · CDI {formatPct(cdiAnnualPct)})
+                        </span>
+                        <span>·</span>
+                        <span>
+                          Em 12m ({asset.reinvestimento_automatico === false ? "sem" : "com"} reinvestimento):{" "}
+                          <strong className="text-ink">
+                            {formatBRL(projection.projected12MonthsBRL)}
+                          </strong>
+                        </span>
+                      </p>
+                    )}
                   </div>
 
-                  <p className="mt-1 text-xs text-ink-secondary">
-                    Meta:{" "}
-                    <strong className="font-medium text-ink">
-                      {asset.meta_vinculada}
-                    </strong>{" "}
-                    · Liquidez: {asset.liquidez} · Titular: {asset.titular}
-                  </p>
+                  {/* Right: Applied -> Current Balance (+Gain) + Actions */}
+                  <div className="flex flex-wrap items-center justify-between gap-5 lg:justify-end shrink-0">
+                    <div className="flex items-center gap-3 text-xs tabular-nums">
+                      <div className="text-right">
+                        <span className="block text-[10px] uppercase tracking-wider text-ink-muted">
+                          Aplicado
+                        </span>
+                        <span className="font-medium text-ink-secondary">
+                          {formatBRL(asset.valor_aportado)}
+                        </span>
+                      </div>
+
+                      <span className="text-ink-muted">→</span>
+
+                      <div className="text-right">
+                        <span className="block text-[10px] uppercase tracking-wider text-ink-muted">
+                          Saldo Atual
+                        </span>
+                        <span className="text-sm font-semibold tracking-[-0.02em] text-ink">
+                          {formatBRL(asset.saldo_atual)}
+                        </span>
+                      </div>
+
+                      <div className="min-w-[96px] text-right">
+                        <span className="block text-[10px] uppercase tracking-wider text-ink-muted">
+                          {ganho === 0 && projection.estimatedAccruedBRL > 0
+                            ? `Est. (${projection.businessDaysElapsed}d)`
+                            : "Rendimento"}
+                        </span>
+                        <span className="font-semibold text-[#0F766E] dark:text-emerald-400">
+                          {ganho === 0 && projection.estimatedAccruedBRL > 0
+                            ? `~${formatBRL(projection.estimatedAccruedBRL, true)}`
+                            : `${formatBRL(ganho, true)} (${formatPct(ganhoPct)})`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setContributingAssetId(isContributing ? null : asset.id);
+                          setContributionAmount(
+                            asset.aporte_mensal ? String(asset.aporte_mensal) : ""
+                          );
+                        }}
+                        className="pressable inline-flex items-center gap-1 rounded-full bg-[#EC4899]/10 px-2.5 py-1 text-xs font-semibold text-[#EC4899] hover:bg-[#EC4899]/20"
+                      >
+                        <Plus className="h-3 w-3" />
+                        <span>Aportar</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEditAssetForm(asset)}
+                        className="pressable inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-ink-secondary hover:bg-[var(--bg-subtle)] hover:text-ink"
+                      >
+                        <Pencil className="h-3 w-3" />
+                        <span>Editar</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAsset(asset)}
+                        className="pressable inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-ink-muted hover:bg-rose-500/10 hover:text-[#EC4899]"
+                        title="Remover ativo"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span className="sr-only">Remover</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Right: Applied -> Current Balance (+Gain) + Discreet Actions */}
-                <div className="flex flex-wrap items-center justify-between gap-5 lg:justify-end shrink-0">
-                  <div className="flex items-center gap-3 text-xs tabular-nums">
-                    <div className="text-right">
-                      <span className="block text-[10px] uppercase tracking-wider text-ink-muted">
-                        Aplicado
-                      </span>
-                      <span className="font-medium text-ink-secondary">
-                        {formatBRL(asset.valor_aportado)}
-                      </span>
+                {isContributing && (
+                  <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-hairline bg-[var(--bg-subtle)]/50 px-4 py-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-ink">Novo aporte (R$):</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value={contributionAmount}
+                        onChange={(e) => setContributionAmount(e.target.value)}
+                        placeholder="Ex: 1000"
+                        className="surface-card w-32 rounded-lg px-2.5 py-1 text-xs text-ink tabular-nums focus:border-[#EC4899] focus:outline-none"
+                      />
                     </div>
-
-                    <span className="text-ink-muted">→</span>
-
-                    <div className="text-right">
-                      <span className="block text-[10px] uppercase tracking-wider text-ink-muted">
-                        Saldo Atual
-                      </span>
-                      <span className="text-sm font-semibold tracking-[-0.02em] text-ink">
-                        {formatBRL(asset.saldo_atual)}
-                      </span>
-                    </div>
-
-                    <div className="min-w-[96px] text-right">
-                      <span className="block text-[10px] uppercase tracking-wider text-ink-muted">
-                        Rendimento
-                      </span>
-                      <span className="font-semibold text-[#0F766E] dark:text-emerald-400">
-                        {formatBRL(ganho, true)} ({formatPct(ganhoPct)})
-                      </span>
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 text-ink-secondary">
+                      <input
+                        type="checkbox"
+                        checked={recordAsTx}
+                        onChange={(e) => setRecordAsTx(e.target.checked)}
+                        className="h-3.5 w-3.5 rounded accent-[#EC4899]"
+                      />
+                      <span>Registrar também nos lançamentos do mês</span>
+                    </label>
+                    <div className="ml-auto flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setContributingAssetId(null)}
+                        className="pressable surface-card rounded-full px-3 py-1 text-xs font-medium text-ink-secondary"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isSubmittingContribution}
+                        onClick={() => handleQuickContribution(asset)}
+                        className="pressable rounded-full bg-[#EC4899] px-3.5 py-1 text-xs font-semibold text-white disabled:opacity-50"
+                      >
+                        {isSubmittingContribution ? "Salvando..." : "Confirmar Aporte"}
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => openEditAssetForm(asset)}
-                      className="pressable inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-ink-secondary hover:bg-[var(--bg-subtle)] hover:text-ink"
-                    >
-                      <Pencil className="h-3 w-3" />
-                      <span>Editar</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteAsset(asset)}
-                      className="pressable inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-ink-muted hover:bg-rose-500/10 hover:text-[#EC4899]"
-                      title="Remover ativo"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span className="sr-only">Remover</span>
-                    </button>
-                  </div>
-                </div>
+                )}
               </article>
             );
           })}

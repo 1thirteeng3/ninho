@@ -151,13 +151,19 @@ export function MacroAllocationChart({
                       allocation.percentualInvestimentos +
                       allocation.percentualProvisoes
                   )} da renda`
-                : "Sem renda no mês"}
+                : "Sem renda no mês (% do alocado)"}
             </span>
           </div>
           {/* Clean Divided Legend List */}
           <div className="divide-y divide-hairline md:col-span-7 max-h-60 overflow-y-auto pr-1.5">
             {chartData.map((item) => {
-              const barPct = Math.min(100, Math.max(3, item.percentualRenda));
+              const displayPct =
+                allocation.rendaTotal > 0
+                  ? item.percentualRenda
+                  : totalAllocated > 0
+                    ? (item.valor / totalAllocated) * 100
+                    : 0;
+              const barPct = Math.min(100, Math.max(3, displayPct));
               return (
                 <div
                   key={item.id}
@@ -178,7 +184,7 @@ export function MacroAllocationChart({
                         {formatBRL(item.valor)}
                       </span>
                       <span className="w-11 text-right text-[11px] font-medium text-ink-secondary">
-                        {formatPct(item.percentualRenda)}
+                        {formatPct(displayPct)}
                       </span>
                     </div>
                   </div>

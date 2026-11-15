@@ -139,7 +139,13 @@ function inferCategoryAndFlowFromHeuristics(
   }
 
   if (
-    /\b(gasolina|posto|etanol|estacionamento|pedagio|uber|99|pneu|oficina|lavagem)\b/.test(
+    /\b(cota individual|mesada)\b/.test(lower)
+  ) {
+    return { categoria: "Cota Individual", tipo_fluxo: "CUSTO" };
+  }
+
+  if (
+    /\b(carro|combustivel|gasolina|posto|etanol|estacionamento|pedagio|uber|99|pneu|oficina|lavagem|mecanico|mecanica)\b/.test(
       lower
     )
   ) {
@@ -147,7 +153,7 @@ function inferCategoryAndFlowFromHeuristics(
   }
 
   if (
-    /\b(farmacia|drogasil|droga raia|medico|consulta|exame|dentista|psicologa|terapia|academia|plano de saude)\b/.test(
+    /\b(saude|farmacia|drogasil|droga raia|medico|consulta|exame|dentista|psicologa|terapia|academia|plano de saude)\b/.test(
       lower
     )
   ) {
@@ -155,7 +161,7 @@ function inferCategoryAndFlowFromHeuristics(
   }
 
   if (
-    /\b(mercado|supermercado|aluguel|condominio|luz|energia|agua|internet|gas|feira|acougue|padaria)\b/.test(
+    /\b(habitacao|fixos|mercado|supermercado|aluguel|condominio|luz|energia|agua|internet|gas|feira|acougue|padaria)\b/.test(
       lower
     )
   ) {
@@ -163,7 +169,9 @@ function inferCategoryAndFlowFromHeuristics(
   }
 
   if (
-    /\b(livro|curso|mensalidade|udemy|alura|ingles|papelaria)\b/.test(lower)
+    /\b(estudos|livro|curso|mensalidade|udemy|alura|ingles|papelaria|faculdade)\b/.test(
+      lower
+    )
   ) {
     return { categoria: "Estudos (Custeio)", tipo_fluxo: "CUSTO" };
   }

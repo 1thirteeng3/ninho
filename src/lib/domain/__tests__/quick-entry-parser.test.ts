@@ -106,4 +106,18 @@ describe("quick-entry-parser — Parser Léxico Determinístico de 0ms (Seção 
     expect(invalid.isValid).toBe(false);
     expect(invalid.valor).toBe(0);
   });
+
+  it("classifica carro, saude e cota individual mesmo sem hashtag", () => {
+    const carro = parseQuickEntry("50 carro nubank");
+    expect(carro.categoria).toBe("Carro");
+    expect(carro.tipo_fluxo).toBe("CUSTO");
+
+    const saude = parseQuickEntry("200 saude nubank 4x");
+    expect(saude.categoria).toBe("Saúde");
+    expect(saude.total_parcelas).toBe(4);
+
+    const cota = parseQuickEntry("146,68 cota individual nubank 2x");
+    expect(cota.categoria).toBe("Cota Individual");
+    expect(cota.total_parcelas).toBe(2);
+  });
 });

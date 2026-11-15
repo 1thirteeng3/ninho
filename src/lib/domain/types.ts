@@ -64,6 +64,9 @@ export const InvestmentAssetSchema = z.object({
   titular: z.enum(["Casal", "Giovanni", "Maria Luiza"]),
   valor_aportado: z.number(),
   saldo_atual: z.number(),
+  aporte_mensal: z.number().optional(),
+  reinvestimento_automatico: z.boolean().optional(),
+  data_atualizacao: z.string().optional(),
 });
 export type InvestmentAsset = z.infer<typeof InvestmentAssetSchema>;
 

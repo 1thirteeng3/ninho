@@ -375,7 +375,10 @@ function setupDatabaseSheets() {
       "meta_vinculada",
       "titular",
       "valor_aportado",
-      "saldo_atual"
+      "saldo_atual",
+      "aporte_mensal",
+      "reinvestimento_automatico",
+      "data_atualizacao"
     ]);
     const initialAssets = [
       [
@@ -871,6 +874,12 @@ function upsertAssetRow(ss, assetPayload) {
     setupDatabaseSheets();
     astSheet = ss.getSheetByName("Ativos_Investimento");
   }
+  // Garante colunas estendidas (K..M) caso a aba já existisse antes
+  if (astSheet.getLastColumn() < 13) {
+    astSheet
+      .getRange(1, 11, 1, 3)
+      .setValues([["aporte_mensal", "reinvestimento_automatico", "data_atualizacao"]]);
+  }
   const assetId = String(assetPayload.id || "AST-" + new Date().getTime()).trim();
   const rowData = [
     sanitizeCell(assetId),
@@ -879,10 +888,13 @@ function upsertAssetRow(ss, assetPayload) {
     sanitizeCell(assetPayload.rendimento || "100% do CDI"),
     sanitizeCell(assetPayload.liquidez || "Diária"),
     sanitizeCell(assetPayload.instituicao || "Nubank"),
-    sanitizeCell(assetPayload.meta_vinculada || "Reserva de Emergência"),
+    sanitizeCell(assetPayload.meta_vinculada || "Reserva & Patrimônio"),
     sanitizeCell(assetPayload.titular || "Conjunto"),
     Math.round((parseFloat(assetPayload.valor_aportado) || 0) * 100) / 100,
-    Math.round((parseFloat(assetPayload.saldo_atual) || 0) * 100) / 100
+    Math.round((parseFloat(assetPayload.saldo_atual) || 0) * 100) / 100,
+    Math.round((parseFloat(assetPayload.aporte_mensal) || 0) * 100) / 100,
+    assetPayload.reinvestimento_automatico === false ? false : true,
+    sanitizeCell(assetPayload.data_atualizacao || "")
   ];
 
   const values = astSheet.getDataRange().getValues();
@@ -1470,7 +1482,8 @@ function syncTasksToSheets() {
 }
 
 /**
- * Implementação interna do consumidor da lista "Finanças" no Google Tasks.
+ * Implementação interna do consumidor das listas "Finanças" / "Minhas tarefas" no Google Tasks.
+ * Tarefas comuns sem o formato de 9 campos separados por ";" são ignoradas e preservadas intactas.
  * Formato esperado (9 campos): DATA;TIPO_FLUXO;CATEGORIA;VALOR;CONTA;PARCELAS;PAGO_POR;ESCOPO;DESCRICAO
  */
 function syncTasksToSheetsInternal(ss, correlationId) {
@@ -1479,73 +1492,69 @@ function syncTasksToSheetsInternal(ss, correlationId) {
     return 0;
   }
 
+  const ALLOWED_LIST_TITLES = ["Finanças", "Minhas tarefas", "My Tasks"];
   const taskListsResponse = Tasks.Tasklists.list();
   const taskLists = (taskListsResponse && taskListsResponse.items) || [];
-  let targetList = null;
-  for (let i = 0; i < taskLists.length; i++) {
-    if (taskLists[i].title === "Finanças") {
-      targetList = taskLists[i];
-      break;
-    }
-  }
-
-  if (!targetList) {
-    return 0;
-  }
-
-  const tasksResponse = Tasks.Tasks.list(targetList.id, {
-    showCompleted: false,
-    showHidden: false
+  const targetLists = taskLists.filter(function (list) {
+    return ALLOWED_LIST_TITLES.indexOf(list.title) !== -1;
   });
-  const tasks = (tasksResponse && tasksResponse.items) || [];
-  if (tasks.length === 0) {
+
+  if (targetLists.length === 0) {
     return 0;
   }
 
   let processedCount = 0;
 
-  for (let i = 0; i < tasks.length; i++) {
-    const task = tasks[i];
-    if (!task.title || task.status === "completed" || task.hidden) {
-      continue;
-    }
-    if (task.title.indexOf(";") === -1) {
-      continue;
-    }
-
-    const parts = task.title.split(";").map(function (s) {
-      return s.trim();
+  targetLists.forEach(function (targetList) {
+    const tasksResponse = Tasks.Tasks.list(targetList.id, {
+      showCompleted: false,
+      showHidden: false
     });
-    if (parts.length < 9) {
-      continue;
+    const tasks = (tasksResponse && tasksResponse.items) || [];
+
+    for (let i = 0; i < tasks.length; i++) {
+      const task = tasks[i];
+      if (!task.title || task.status === "completed" || task.hidden) {
+        continue;
+      }
+      if (task.title.indexOf(";") === -1) {
+        continue;
+      }
+
+      const parts = task.title.split(";").map(function (s) {
+        return s.trim();
+      });
+      if (parts.length < 9) {
+        continue;
+      }
+
+      const valorNum = parseFloat(parts[3].replace(",", "."));
+      if (isNaN(valorNum)) {
+        continue;
+      }
+
+      const paidBy = normalizeMember(parts[6]);
+      const scope = normalizeScope(parts[7], paidBy);
+      const descricao = parts.slice(8).join("; ").trim();
+
+      const payload = {
+        data_competencia: parts[0],
+        tipo_fluxo: parts[1],
+        categoria: parts[2],
+        valor: valorNum,
+        conta: parts[4] || "Nubank",
+        total_parcelas: parseInt(parts[5], 10) || 1,
+        pago_por: paidBy,
+        escopo: scope,
+        descricao: descricao || "Lançamento via Gem"
+      };
+
+      // Insere as linhas na planilha e SOMENTE após sucesso remove a task da fila
+      recordTransactionRows(ss, payload);
+      Tasks.Tasks.remove(targetList.id, task.id);
+      processedCount++;
     }
-
-    const valorNum = parseFloat(parts[3].replace(",", "."));
-    if (isNaN(valorNum)) {
-      continue;
-    }
-
-    const paidBy = normalizeMember(parts[6]);
-    const scope = normalizeScope(parts[7], paidBy);
-    const descricao = parts.slice(8).join("; ").trim();
-
-    const payload = {
-      data_competencia: parts[0],
-      tipo_fluxo: parts[1],
-      categoria: parts[2],
-      valor: valorNum,
-      conta: parts[4] || "Nubank",
-      total_parcelas: parseInt(parts[5], 10) || 1,
-      pago_por: paidBy,
-      escopo: scope,
-      descricao: descricao || "Lançamento via Gem"
-    };
-
-    // Insere as linhas na planilha e SOMENTE após sucesso remove a task da fila
-    recordTransactionRows(ss, payload);
-    Tasks.Tasks.remove(targetList.id, task.id);
-    processedCount++;
-  }
+  });
 
   return processedCount;
 }

@@ -53,6 +53,17 @@ export function DynamicAllocationTable({
     [transactions, yearMonth, viewMode]
   );
 
+  const hasIncome = allocation.rendaTotal > 0;
+  const totalAllocated =
+    allocation.custosTotal +
+    allocation.provisoesTotal +
+    allocation.investimentosTotal;
+
+  function resolvePct(value: number, incomePct: number): number {
+    if (hasIncome) return incomePct;
+    return totalAllocated > 0 ? roundCurrency((value / totalAllocated) * 100) : 0;
+  }
+
   function toggleGroup(group: "custos" | "provisoes" | "investimentos") {
     setExpandedGroups((prev) => ({
       ...prev,
@@ -100,7 +111,9 @@ export function DynamicAllocationTable({
             <tr className="border-b border-hairline bg-[var(--bg-subtle)]/60 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-secondary">
               <th className="py-3 pl-6 pr-3">Grupo / Categoria</th>
               <th className="px-4 py-3 text-right">Valor no Mês</th>
-              <th className="px-4 py-3 text-right">Fatia da Renda</th>
+              <th className="px-4 py-3 text-right">
+                {hasIncome ? "Fatia da Renda" : "Fatia do Total"}
+              </th>
               <th className="py-3 pl-4 pr-6">Proporção &amp; Meta</th>
             </tr>
           </thead>
@@ -125,7 +138,7 @@ export function DynamicAllocationTable({
                 {formatBRL(allocation.custosTotal)}
               </td>
               <td className="px-4 py-3 text-right font-semibold text-[#EC4899] tabular-nums">
-                {formatPct(allocation.percentualCustos)}
+                {formatPct(resolvePct(allocation.custosTotal, allocation.percentualCustos))}
               </td>
               <td className="py-3 pl-4 pr-6">
                 <div className="flex items-center gap-3">
@@ -135,7 +148,10 @@ export function DynamicAllocationTable({
                       style={{
                         width: `${Math.min(
                           100,
-                          Math.max(0, allocation.percentualCustos)
+                          Math.max(
+                            0,
+                            resolvePct(allocation.custosTotal, allocation.percentualCustos)
+                          )
                         )}%`,
                       }}
                     />
@@ -150,10 +166,8 @@ export function DynamicAllocationTable({
             {expandedGroups.custos &&
               allocation.categoriasCusto.map((item) => {
                 const color = CATEGORY_COLORS[item.categoria] ?? "#EC4899";
-                const barWidth = Math.min(
-                  100,
-                  Math.max(0, item.percentualRenda)
-                );
+                const displayPct = resolvePct(item.valor, item.percentualRenda);
+                const barWidth = Math.min(100, Math.max(0, displayPct));
                 const isSelected = selectedCategoryFilter === item.categoria;
 
                 return (
@@ -183,7 +197,7 @@ export function DynamicAllocationTable({
                       {formatBRL(item.valor)}
                     </td>
                     <td className="px-4 py-2.5 text-right text-ink-secondary tabular-nums">
-                      {formatPct(item.percentualRenda)}
+                      {formatPct(displayPct)}
                     </td>
                     <td className="py-2.5 pl-4 pr-6">
                       <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-[var(--bg-subtle)]">
