@@ -294,6 +294,13 @@ function normalizeAsset(r: Row) {
     ),
     valor_aportado: num(r.valor_aportado),
     saldo_atual: num(r.saldo_atual),
+    aporte_mensal: num(r.aporte_mensal),
+    reinvestimento_automatico:
+      r.reinvestimento_automatico === false ||
+      String(r.reinvestimento_automatico).toLowerCase() === "false"
+        ? false
+        : true,
+    data_atualizacao: isoDate(r.data_atualizacao),
   };
 }
 
