@@ -6,6 +6,7 @@ import {
   Moon,
   RefreshCw,
   SlidersHorizontal,
+  Lock,
   Sun,
 } from "lucide-react";
 import type { ViewMode } from "@/lib/domain/types";
@@ -65,6 +66,8 @@ interface HeaderControlsProps {
   isSyncing: boolean;
   onSyncTasks: () => void;
   onOpenSetup: () => void;
+  authEnabled?: boolean;
+  onLock?: () => void;
 }
 
 export function HeaderControls({
@@ -76,6 +79,8 @@ export function HeaderControls({
   isSyncing,
   onSyncTasks,
   onOpenSetup,
+  authEnabled,
+  onLock,
 }: HeaderControlsProps) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
@@ -296,6 +301,17 @@ export function HeaderControls({
                   </>
                 )}
               </button>
+              {authEnabled && onLock && (
+                <button
+                  type="button"
+                  onClick={onLock}
+                  className="pressable surface-card inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-secondary hover:text-ink"
+                  title="Bloquear painel"
+                  aria-label="Bloquear painel"
+                >
+                  <Lock className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           </div>
         </div>

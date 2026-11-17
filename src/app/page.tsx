@@ -10,6 +10,7 @@ import {
   type DataSourceMode,
 } from "@/components/dashboard/HeaderControls";
 import { OnboardingSetupModal } from "@/components/dashboard/OnboardingSetupModal";
+import { PasscodeLockScreen } from "@/components/dashboard/PasscodeLockScreen";
 import { InstallmentsManagerModule } from "@/components/dashboard/InstallmentsManagerModule";
 import { InvestmentAssetsManager } from "@/components/dashboard/InvestmentAssetsManager";
 import { InvestmentGoalsChart } from "@/components/dashboard/InvestmentGoalsChart";
@@ -59,6 +60,14 @@ export default function NinhoDashboardPage() {
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [isSetupOpen, setIsSetupOpen] = useState<boolean>(false);
   const [isFirstAccess, setIsFirstAccess] = useState<boolean>(false);
+  const [logsSearchFilter, setLogsSearchFilter] = useState<string | undefined>(
+    undefined
+  );
+  const [authStatus, setAuthStatus] = useState<{
+    checked: boolean;
+    authEnabled: boolean;
+    authenticated: boolean;
+  }>({ checked: false, authEnabled: false, authenticated: false });
 
   const [payload, setPayload] = useState<DashboardPayload>(EMPTY_PAYLOAD);
 
@@ -69,6 +78,10 @@ export default function NinhoDashboardPage() {
         cache: "no-store",
       });
 
+      if (res.status === 401) {
+        setAuthStatus((prev) => ({ ...prev, authenticated: false }));
+        return null;
+      }
       if (!res.ok) {
         throw new Error("Erro ao consultar dados.");
       }
@@ -104,22 +117,49 @@ export default function NinhoDashboardPage() {
     }
   }, []);
 
-  useEffect(() => {
-    void (async () => {
-      const data = await fetchDashboardData();
-      if (!data) return;
-      const isEmpty =
-        (data.transacoes ?? []).length === 0 &&
-        (data.investimentos ?? []).length === 0 &&
-        (data.ativos ?? []).length === 0 &&
-        (data.recebiveis ?? []).length === 0 &&
-        (data.provisoes ?? []).length === 0;
-      if (isEmpty && data.isConnectedToSheets) {
-        setIsFirstAccess(true);
-        setIsSetupOpen(true);
+  const loadInitial = useCallback(async () => {
+    const authRes = await fetch("/api/auth", { cache: "no-store" }).catch(
+      () => null
+    );
+    if (authRes && authRes.ok) {
+      const authData = (await authRes.json()) as {
+        authEnabled: boolean;
+        authenticated: boolean;
+      };
+      setAuthStatus({
+        checked: true,
+        authEnabled: Boolean(authData.authEnabled),
+        authenticated: Boolean(authData.authenticated),
+      });
+      if (authData.authEnabled && !authData.authenticated) {
+        return;
       }
-    })();
+    } else {
+      setAuthStatus({ checked: true, authEnabled: false, authenticated: true });
+    }
+
+    const data = await fetchDashboardData();
+    if (!data) return;
+    const isEmpty =
+      (data.transacoes ?? []).length === 0 &&
+      (data.investimentos ?? []).length === 0 &&
+      (data.ativos ?? []).length === 0 &&
+      (data.recebiveis ?? []).length === 0 &&
+      (data.provisoes ?? []).length === 0;
+    if (isEmpty && data.isConnectedToSheets) {
+      setIsFirstAccess(true);
+      setIsSetupOpen(true);
+    }
   }, [fetchDashboardData]);
+
+  useEffect(() => {
+    void loadInitial();
+  }, [loadInitial]);
+
+  async function handleLock() {
+    await fetch("/api/auth", { method: "DELETE" }).catch(() => null);
+    setAuthStatus((prev) => ({ ...prev, authenticated: false }));
+  }
 
   function handleSyncTasks() {
     if (isSyncing) return;
@@ -229,6 +269,24 @@ export default function NinhoDashboardPage() {
     { id: "ALL", label: "Ver Tudo" },
   ];
 
+  if (!authStatus.checked) {
+    return (
+      <main className="min-h-screen flex items-center justify-center text-xs text-ink-muted">
+        Carregando Ninho...
+      </main>
+    );
+  }
+
+  if (authStatus.authEnabled && !authStatus.authenticated) {
+    return (
+      <PasscodeLockScreen
+        onUnlocked={() => {
+          void loadInitial();
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <HeaderControls
@@ -243,6 +301,8 @@ export default function NinhoDashboardPage() {
           setIsFirstAccess(false);
           setIsSetupOpen(true);
         }}
+        authEnabled={authStatus.authEnabled}
+        onLock={handleLock}
       />
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -318,6 +378,10 @@ export default function NinhoDashboardPage() {
               transactions={payload.transacoes}
               yearMonth={yearMonth}
               viewMode={viewMode}
+              onSelectCategory={(category) => {
+                setLogsSearchFilter(category);
+                setActiveWorkspaceTab("LOGS");
+              }}
             />
 
             <CoupleGovernanceModule
@@ -335,6 +399,7 @@ export default function NinhoDashboardPage() {
             yearMonth={yearMonth}
             viewMode={viewMode}
             dataSourceMode={DATA_SOURCE}
+            externalSearchQuery={logsSearchFilter}
             onDataChanged={async () => {
             await fetchDashboardData();
           }}
@@ -401,6 +466,10 @@ export default function NinhoDashboardPage() {
               transactions={payload.transacoes}
               yearMonth={yearMonth}
               viewMode={viewMode}
+              onSelectCategory={(category) => {
+                setLogsSearchFilter(category);
+                setActiveWorkspaceTab("LOGS");
+              }}
             />
 
             <InvestmentAssetsManager
@@ -427,6 +496,7 @@ export default function NinhoDashboardPage() {
               yearMonth={yearMonth}
               viewMode={viewMode}
               dataSourceMode={DATA_SOURCE}
+            externalSearchQuery={logsSearchFilter}
               onDataChanged={async () => {
             await fetchDashboardData();
           }}

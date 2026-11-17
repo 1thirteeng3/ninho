@@ -58,7 +58,15 @@ export function QuickEntryBar({
 
   const referenceDate = useMemo(() => {
     const cleanYm = yearMonth.trim().slice(0, 7);
-    return `${cleanYm}-12`;
+    const now = new Date();
+    const todayYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    if (cleanYm === todayYm) {
+      return `${todayYm}-${String(now.getDate()).padStart(2, "0")}`;
+    }
+    const [y, m] = cleanYm.split("-").map(Number);
+    const lastDay = new Date(y || now.getFullYear(), m || now.getMonth() + 1, 0).getDate();
+    const clampedDay = Math.min(now.getDate(), lastDay);
+    return `${cleanYm}-${String(clampedDay).padStart(2, "0")}`;
   }, [yearMonth]);
 
   const parsed = useMemo(

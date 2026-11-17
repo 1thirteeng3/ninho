@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -17,6 +17,7 @@ interface TransactionLogsModuleProps {
   viewMode: ViewMode;
   dataSourceMode: DataSourceMode;
   onDataChanged: () => Promise<void> | void;
+  externalSearchQuery?: string;
 }
 
 type LogFlowFilter = "ALL" | "ENTRADA" | "SAIDA" | "GUARDADO";
@@ -29,11 +30,22 @@ export function TransactionLogsModule({
   viewMode,
   dataSourceMode,
   onDataChanged,
+  externalSearchQuery,
 }: TransactionLogsModuleProps) {
   const [flowFilter, setFlowFilter] = useState<LogFlowFilter>("ALL");
   const [periodFilter, setPeriodFilter] = useState<LogPeriodFilter>("MONTH");
   const [memberFilter, setMemberFilter] = useState<LogMemberFilter>("ALL");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>(
+    externalSearchQuery ?? ""
+  );
+
+  useEffect(() => {
+    if (externalSearchQuery !== undefined) {
+      setSearchQuery(externalSearchQuery);
+      setFlowFilter("ALL");
+      setPeriodFilter("MONTH");
+    }
+  }, [externalSearchQuery]);
 
   const baseTransactions = useMemo(() => {
     if (periodFilter === "ALL_TIME") {

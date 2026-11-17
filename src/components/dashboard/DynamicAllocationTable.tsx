@@ -25,6 +25,7 @@ interface DynamicAllocationTableProps {
   transactions: Transaction[];
   yearMonth: string;
   viewMode: ViewMode;
+  onSelectCategory?: (category: string) => void;
 }
 
 export function DynamicAllocationTable({
@@ -33,6 +34,7 @@ export function DynamicAllocationTable({
   transactions,
   yearMonth,
   viewMode,
+  onSelectCategory,
 }: DynamicAllocationTableProps) {
   const [expandedGroups, setExpandedGroups] = useState<{
     custos: boolean;
@@ -173,11 +175,12 @@ export function DynamicAllocationTable({
                 return (
                   <tr
                     key={item.categoria}
-                    onClick={() =>
+                    onClick={() => {
                       setSelectedCategoryFilter(
                         isSelected ? "ALL" : item.categoria
-                      )
-                    }
+                      );
+                      onSelectCategory?.(item.categoria);
+                    }}
                     className={`cursor-pointer transition-colors hover:bg-[var(--bg-subtle)]/40 ${
                       isSelected ? "bg-[var(--bg-rose-tint)]" : ""
                     }`}
@@ -234,7 +237,9 @@ export function DynamicAllocationTable({
                 {formatBRL(allocation.provisoesTotal)}
               </td>
               <td className="px-4 py-3 text-right font-semibold text-[#D97706] tabular-nums">
-                {formatPct(allocation.percentualProvisoes)}
+                {formatPct(
+                  resolvePct(allocation.provisoesTotal, allocation.percentualProvisoes)
+                )}
               </td>
               <td className="py-3 pl-4 pr-6">
                 <div className="flex items-center gap-3">
@@ -244,7 +249,13 @@ export function DynamicAllocationTable({
                       style={{
                         width: `${Math.min(
                           100,
-                          Math.max(0, allocation.percentualProvisoes)
+                          Math.max(
+                            0,
+                            resolvePct(
+                              allocation.provisoesTotal,
+                              allocation.percentualProvisoes
+                            )
+                          )
                         )}%`,
                       }}
                     />
@@ -311,7 +322,12 @@ export function DynamicAllocationTable({
                 {formatBRL(allocation.investimentosTotal)}
               </td>
               <td className="px-4 py-3 text-right font-semibold text-[#C084FC] dark:text-[#FB7185] tabular-nums">
-                {formatPct(allocation.percentualInvestimentos)}
+                {formatPct(
+                  resolvePct(
+                    allocation.investimentosTotal,
+                    allocation.percentualInvestimentos
+                  )
+                )}
               </td>
               <td className="py-3 pl-4 pr-6">
                 <div className="flex items-center gap-3">
@@ -321,7 +337,13 @@ export function DynamicAllocationTable({
                       style={{
                         width: `${Math.min(
                           100,
-                          Math.max(0, allocation.percentualInvestimentos)
+                          Math.max(
+                            0,
+                            resolvePct(
+                              allocation.investimentosTotal,
+                              allocation.percentualInvestimentos
+                            )
+                          )
                         )}%`,
                       }}
                     />
@@ -377,7 +399,9 @@ export function DynamicAllocationTable({
                       {formatBRL(invItem.valor)}
                     </td>
                     <td className="px-4 py-2.5 text-right text-ink-secondary tabular-nums">
-                      {formatPct(invItem.percentualRenda)}
+                      {formatPct(
+                        resolvePct(invItem.valor, invItem.percentualRenda)
+                      )}
                     </td>
                     <td className="py-2.5 pl-4 pr-6">
                       {matchingGoal ? (

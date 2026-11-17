@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { isRequestAuthorized } from "@/lib/auth/session";
 import { splitInstallmentsWithBillingCycle } from "@/lib/domain/financial-engine";
 import {
   AnnualProvisionSchema,
@@ -163,20 +164,29 @@ async function forwardActionToGasIfLive(
   mode: "LIVE" | "DEMO" | "WORST_CASE" | undefined,
   payload: Record<string, unknown>
 ): Promise<void> {
-  if (!gasUrl || mode !== "LIVE") return;
-  try {
-    const secretToken = process.env.GAS_SECRET_TOKEN?.trim() ?? "";
-    await fetch(gasUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...payload,
-        token: secretToken,
-      }),
-      cache: "no-store",
-    });
-  } catch {
-    // Mantém resiliência caso o webhook demore ou oscile; o store local continua atualizado
+  if (mode !== "LIVE") return;
+  if (!gasUrl) {
+    throw new Error("Planilha não configurada (GAS_URL ausente).");
+  }
+  const secretToken = process.env.GAS_SECRET_TOKEN?.trim() ?? "";
+  const response = await fetch(gasUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...payload,
+      token: secretToken,
+    }),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`Falha HTTP ${response.status} ao gravar na planilha.`);
+  }
+  const json = (await response.json().catch(() => null)) as {
+    status?: string;
+    message?: string;
+  } | null;
+  if (json && json.status === "ERROR") {
+    throw new Error(json.message || "Erro retornado pela planilha Google Sheets.");
   }
 }
 
@@ -340,6 +350,12 @@ function emptyPayload() {
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const headers = buildSecurityHeaders();
+  if (!isRequestAuthorized(request)) {
+    return NextResponse.json(
+      { status: "ERROR", code: "UNAUTHORIZED", message: "Acesso não autorizado." },
+      { status: 401, headers }
+    );
+  }
   const { searchParams } = new URL(request.url);
   const requestedMode = searchParams.get("mode")?.toUpperCase();
   const action = searchParams.get("action");
@@ -470,6 +486,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const headers = buildSecurityHeaders();
+  if (!isRequestAuthorized(request)) {
+    return NextResponse.json(
+      { status: "ERROR", code: "UNAUTHORIZED", message: "Acesso não autorizado." },
+      { status: 401, headers }
+    );
+  }
 
   let rawBody: unknown;
   try {
@@ -490,6 +512,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const actionParse = ActionRequestSchema.safeParse(rawBody);
   if (actionParse.success) {
     const parsedAction = actionParse.data;
+    try {
 
     if (parsedAction.action === "RESET_DEMO") {
       const freshStore = resetDemoMemoryStore();
@@ -753,6 +776,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             "Sincronização concluída em modo de demonstração.",
         },
         { status: 200, headers }
+      );
+    }
+    } catch (err) {
+      return NextResponse.json(
+        {
+          status: "ERROR",
+          message:
+            err instanceof Error
+              ? err.message
+              : "Falha ao gravar na planilha Google Sheets.",
+        },
+        { status: 502, headers }
       );
     }
   }

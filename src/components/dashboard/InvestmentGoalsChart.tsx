@@ -223,7 +223,7 @@ export function InvestmentGoalsChart({
       consumoDiferidoBruto,
       data,
     };
-  }, [goals]);
+  }, [effectiveGoals]);
 
   const nonZeroChartData = summary.data.filter((d) => d.saldo_bruto_atual > 0);
 
@@ -313,9 +313,11 @@ export function InvestmentGoalsChart({
                     <span className="font-bold text-ink">
                       {formatBRL(goal.saldo_bruto_atual)}
                     </span>
-                    <span className="text-[11px] font-medium text-ink-muted">
-                      / {formatBRL(goal.valor_alvo)}
-                    </span>
+                    {goal.valor_alvo > 0 && (
+                      <span className="text-[11px] font-medium text-ink-muted">
+                        / {formatBRL(goal.valor_alvo)}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -325,13 +327,19 @@ export function InvestmentGoalsChart({
                     <div
                       className="h-full rounded-full transition-all duration-300"
                       style={{
-                        width: `${clampedBarPct}%`,
+                        width: `${
+                          goal.valor_alvo > 0
+                            ? clampedBarPct
+                            : Math.min(100, Math.max(3, goal.participacaoCarteiraPct))
+                        }%`,
                         backgroundColor: goal.color,
                       }}
                     />
                   </div>
-                  <span className="w-11 text-right text-[11px] font-bold text-ink-secondary tabular-nums">
-                    {formatPct(goal.progressoPct)}
+                  <span className="w-16 text-right text-[11px] font-bold text-ink-secondary tabular-nums">
+                    {goal.valor_alvo > 0
+                      ? formatPct(goal.progressoPct)
+                      : `${formatPct(goal.participacaoCarteiraPct)} cart.`}
                   </span>
                 </div>
               </div>

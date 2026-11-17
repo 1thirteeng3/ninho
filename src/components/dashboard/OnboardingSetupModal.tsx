@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Check, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import type {
@@ -103,7 +103,7 @@ export function OnboardingSetupModal({
 }: OnboardingSetupModalProps) {
   const [step, setStep] = useState<StepId>("CASAL");
   const [busy, setBusy] = useState(false);
-  const [confirmClear, setConfirmClear] = useState(false);
+  const [clearConfirmText, setClearConfirmText] = useState("");
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -124,6 +124,25 @@ export function OnboardingSetupModal({
       ],
     })
   );
+
+  useEffect(() => {
+    if (!open) return;
+    const g = payload.config.find((c) => c.usuario === "Giovanni");
+    const m = payload.config.find((c) => c.usuario === "Maria Luiza");
+    setCfg({
+      Giovanni: [
+        String(g?.cota_mensal_livre ?? 0),
+        String(g?.dia_fechamento_cartao ?? 1),
+        String(g?.dia_vencimento_cartao ?? 10),
+      ],
+      "Maria Luiza": [
+        String(m?.cota_mensal_livre ?? 0),
+        String(m?.dia_fechamento_cartao ?? 1),
+        String(m?.dia_vencimento_cartao ?? 10),
+      ],
+    });
+    setClearConfirmText("");
+  }, [open, payload.config]);
 
   // Passo 2
   const [txKind, setTxKind] = useState<"ENTRADA" | "DESPESA">("ENTRADA");
@@ -408,11 +427,11 @@ export function OnboardingSetupModal({
   }
 
   function clearAll() {
-    if (!confirmClear) {
-      setConfirmClear(true);
+    if (clearConfirmText.trim().toUpperCase() !== "ZERAR") {
+      toast.error('Digite "ZERAR" para confirmar a limpeza completa.');
       return;
     }
-    setConfirmClear(false);
+    setClearConfirmText("");
     void run(
       () => postAction({ action: "CLEAR_ALL_DATA" }),
       "Todos os dados foram zerados."
@@ -724,10 +743,18 @@ export function OnboardingSetupModal({
                   </Field>
                   <Field label="Meta vinculada">
                     <select className={INPUT} value={aGoal} onChange={(e) => setAGoal(e.target.value)}>
-                      <option value="">(primeira meta)</option>
-                      {payload.investimentos.map((g) => (
-                        <option key={g.id_meta} value={String(g.nome)}>
-                          {String(g.nome)}
+                      <option value="">Selecione ou use padrão</option>
+                      {Array.from(
+                        new Set([
+                          "Casa",
+                          "Estudos (Fundo Futuro)",
+                          "Viagem",
+                          "Reserva & Patrimônio",
+                          ...payload.investimentos.map((g) => String(g.nome)),
+                        ])
+                      ).map((goalName) => (
+                        <option key={goalName} value={goalName}>
+                          {goalName}
                         </option>
                       ))}
                     </select>
@@ -802,14 +829,23 @@ export function OnboardingSetupModal({
                 <p className="mt-1 text-xs text-ink-secondary">
                   Apaga todos os lançamentos, metas, ativos, parcelas e despesas anuais da planilha. Não dá para desfazer.
                 </p>
-                <button
-                  type="button"
-                  onClick={clearAll}
-                  disabled={busy}
-                  className="pressable mt-3 rounded-full border-2 border-[#1F0D18] bg-white px-4 py-2 text-xs font-bold text-[#831843] disabled:opacity-50"
-                >
-                  {confirmClear ? "Clique de novo para confirmar" : "Zerar todos os dados"}
-                </button>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <input
+                    type="text"
+                    value={clearConfirmText}
+                    onChange={(e) => setClearConfirmText(e.target.value)}
+                    placeholder='Digite ZERAR para liberar'
+                    className="surface-card w-48 rounded-full px-3 py-1.5 text-xs text-ink placeholder:text-ink-muted focus:border-[#EC4899] focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    disabled={busy || clearConfirmText.trim().toUpperCase() !== "ZERAR"}
+                    className="pressable rounded-full border-2 border-[#1F0D18] bg-white px-4 py-1.5 text-xs font-bold text-[#831843] disabled:opacity-40"
+                  >
+                    Zerar todos os dados
+                  </button>
+                </div>
               </div>
             </div>
           )}
