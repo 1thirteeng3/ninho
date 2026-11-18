@@ -12,6 +12,7 @@ import {
   InvestmentGoalSchema,
   MemberSchema,
   ReceivablePlanSchema,
+  RecurringTemplateSchema,
   ScopeSchema,
 } from "@/lib/domain/types";
 import {
@@ -132,6 +133,32 @@ const ActionRequestSchema = z.discriminatedUnion("action", [
   }),
   z.object({
     action: z.literal("CLEAR_ALL_DATA"),
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("UPDATE_TRANSACTION"),
+    id: z.string().min(1),
+    transaction: z.object({
+      data_competencia: z.string().min(8),
+      data_caixa: z.string().min(8),
+      tipo_fluxo: FlowTypeSchema,
+      categoria: CategorySchema,
+      descricao: z.string().min(1).max(300),
+      valor: z.number(),
+      conta: z.string().min(1).max(100),
+      pago_por: MemberSchema,
+      escopo: ScopeSchema,
+    }),
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("UPSERT_RECURRING"),
+    recurring: RecurringTemplateSchema,
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("DELETE_RECURRING"),
+    id: z.string().min(1),
     mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
   }),
 ]);
@@ -333,6 +360,22 @@ function normalizeReceivable(r: Row) {
   };
 }
 
+function normalizeRecurring(r: Row) {
+  if (!str(r.id)) return null;
+  const paidBy = pick(r.pago_por, ["Giovanni", "Maria Luiza"] as const, "Giovanni");
+  return {
+    id: str(r.id),
+    descricao: str(r.descricao),
+    tipo_fluxo: pick(r.tipo_fluxo, FlowTypeSchema.options, "CUSTO"),
+    categoria: pick(r.categoria, CategorySchema.options, "Habitação & Fixos"),
+    valor: Math.abs(num(r.valor)),
+    conta: str(r.conta) || "Conta Conjunta",
+    pago_por: paidBy,
+    escopo: pick(r.escopo, ScopeSchema.options, "CONJUNTO"),
+    dia_vencimento: Math.min(31, Math.max(1, Math.floor(num(r.dia_vencimento)) || 10)),
+  };
+}
+
 function emptyPayload() {
   return {
     transacoes: [],
@@ -344,6 +387,7 @@ function emptyPayload() {
     ],
     ativos: [],
     recebiveis: [],
+    recorrentes: [],
     timestamp: new Date().toISOString(),
   };
 }
@@ -460,6 +504,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         config: normalizeRows(data.config, normalizeConfig),
         ativos: normalizeRows(data.ativos, normalizeAsset),
         recebiveis: normalizeRows(data.recebiveis, normalizeReceivable),
+        recorrentes: normalizeRows(data.recorrentes, normalizeRecurring),
         syncedTasks:
           typeof data.syncedTasks === "number" ? data.syncedTasks : 0,
         timestamp:
@@ -685,6 +730,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (parsedAction.action === "CLEAR_ALL_DATA") {
       await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
         action: "CLEAR_ALL_DATA",
+      });
+      return NextResponse.json({ status: "SUCCESS" }, { status: 200, headers });
+    }
+
+    if (parsedAction.action === "UPDATE_TRANSACTION") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "UPDATE_TRANSACTION",
+        transactionId: parsedAction.id,
+        transaction: parsedAction.transaction,
+      });
+      return NextResponse.json({ status: "SUCCESS" }, { status: 200, headers });
+    }
+
+    if (parsedAction.action === "UPSERT_RECURRING") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "UPSERT_RECURRING",
+        recurring: parsedAction.recurring,
+      });
+      return NextResponse.json({ status: "SUCCESS" }, { status: 200, headers });
+    }
+
+    if (parsedAction.action === "DELETE_RECURRING") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "DELETE_RECURRING",
+        id: parsedAction.id,
       });
       return NextResponse.json({ status: "SUCCESS" }, { status: 200, headers });
     }

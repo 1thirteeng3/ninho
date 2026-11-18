@@ -17,6 +17,7 @@ import { InvestmentGoalsChart } from "@/components/dashboard/InvestmentGoalsChar
 import { KpiSummaryRow } from "@/components/dashboard/KpiSummaryRow";
 import { MacroAllocationChart } from "@/components/dashboard/MacroAllocationChart";
 import { QuickEntryBar } from "@/components/dashboard/QuickEntryBar";
+import { RecurringTemplatesModule } from "@/components/dashboard/RecurringTemplatesModule";
 import { TransactionLogsModule } from "@/components/dashboard/TransactionLogsModule";
 import {
   calculateCoupleSettlement,
@@ -41,6 +42,7 @@ const EMPTY_PAYLOAD: DashboardPayload = {
   config: [],
   ativos: [],
   recebiveis: [],
+  recorrentes: [],
   timestamp: new Date().toISOString(),
   mode: "LIVE",
 };
@@ -99,6 +101,7 @@ export default function NinhoDashboardPage() {
           config: data.config ?? [],
           ativos: data.ativos ?? [],
           recebiveis: data.recebiveis ?? [],
+          recorrentes: data.recorrentes ?? [],
           timestamp: data.timestamp ?? new Date().toISOString(),
           mode: data.mode,
         });
@@ -309,6 +312,7 @@ export default function NinhoDashboardPage() {
         {/* Omnibox Lançamento Rápido */}
         <QuickEntryBar
           yearMonth={yearMonth}
+          config={payload.config}
           dataSourceMode={DATA_SOURCE}
           onTransactionCreated={async () => {
             await fetchDashboardData();
@@ -394,16 +398,27 @@ export default function NinhoDashboardPage() {
 
         {/* TAB 2: EXTRATO & LOGS */}
         {activeWorkspaceTab === "LOGS" && (
-          <TransactionLogsModule
-            transactions={payload.transacoes}
-            yearMonth={yearMonth}
-            viewMode={viewMode}
-            dataSourceMode={DATA_SOURCE}
-            externalSearchQuery={logsSearchFilter}
-            onDataChanged={async () => {
-            await fetchDashboardData();
-          }}
-          />
+          <div className="space-y-6">
+            <RecurringTemplatesModule
+              templates={payload.recorrentes ?? []}
+              transactions={payload.transacoes}
+              yearMonth={yearMonth}
+              dataSourceMode={DATA_SOURCE}
+              onDataChanged={async () => {
+                await fetchDashboardData();
+              }}
+            />
+            <TransactionLogsModule
+              transactions={payload.transacoes}
+              yearMonth={yearMonth}
+              viewMode={viewMode}
+              dataSourceMode={DATA_SOURCE}
+              externalSearchQuery={logsSearchFilter}
+              onDataChanged={async () => {
+                await fetchDashboardData();
+              }}
+            />
+          </div>
         )}
 
         {/* TAB 3: INVESTIMENTOS & ATIVOS */}
@@ -439,11 +454,22 @@ export default function NinhoDashboardPage() {
 
         {/* TAB 5: MESADA & RESERVA ANUAL */}
         {activeWorkspaceTab === "GOVERNANCE" && (
-          <CoupleGovernanceModule
-            settlement={settlement}
-            futureInvoices={futureInvoices}
-            provisions={payload.provisoes}
-          />
+          <div className="space-y-6">
+            <CoupleGovernanceModule
+              settlement={settlement}
+              futureInvoices={futureInvoices}
+              provisions={payload.provisoes}
+            />
+            <RecurringTemplatesModule
+              templates={payload.recorrentes ?? []}
+              transactions={payload.transacoes}
+              yearMonth={yearMonth}
+              dataSourceMode={DATA_SOURCE}
+              onDataChanged={async () => {
+                await fetchDashboardData();
+              }}
+            />
+          </div>
         )}
 
         {/* TAB 6: VER TUDO */}

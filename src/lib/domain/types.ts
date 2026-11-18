@@ -130,6 +130,19 @@ export const CoupleConfigSchema = z.object({
 });
 export type CoupleConfig = z.infer<typeof CoupleConfigSchema>;
 
+export const RecurringTemplateSchema = z.object({
+  id: z.string(),
+  descricao: z.string(),
+  tipo_fluxo: FlowTypeSchema,
+  categoria: CategorySchema,
+  valor: z.number(),
+  conta: z.string(),
+  pago_por: MemberSchema,
+  escopo: ScopeSchema,
+  dia_vencimento: z.number().int().min(1).max(31),
+});
+export type RecurringTemplate = z.infer<typeof RecurringTemplateSchema>;
+
 export const DashboardPayloadSchema = z.object({
   transacoes: z.array(TransactionSchema),
   investimentos: z.array(InvestmentGoalSchema),
@@ -137,6 +150,7 @@ export const DashboardPayloadSchema = z.object({
   config: z.array(CoupleConfigSchema),
   ativos: z.array(InvestmentAssetSchema).optional().default([]),
   recebiveis: z.array(ReceivablePlanSchema).optional().default([]),
+  recorrentes: z.array(RecurringTemplateSchema).optional(),
   timestamp: z.string(),
   mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
 });

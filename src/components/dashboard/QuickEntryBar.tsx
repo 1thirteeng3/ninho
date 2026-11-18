@@ -1,13 +1,24 @@
 ﻿"use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { CornerDownLeft } from "lucide-react";
+import { CornerDownLeft, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { roundCurrency } from "@/lib/domain/financial-engine";
+import {
+  roundCurrency,
+  splitInstallmentsWithBillingCycle,
+} from "@/lib/domain/financial-engine";
 import { parseQuickEntry } from "@/lib/domain/quick-entry-parser";
-import type { Member } from "@/lib/domain/types";
+import type {
+  Category,
+  CoupleConfig,
+  FlowType,
+  Member,
+  Scope,
+} from "@/lib/domain/types";
 import {
   formatBRL,
+  formatShortDate,
+  formatYearMonthLabel,
   getFlowBadgeStyle,
   getScopeBadgeLabel,
 } from "@/lib/formatters";
@@ -28,20 +39,42 @@ const QUICK_EXAMPLES: readonly { label: string; text: string }[] = [
   },
 ];
 
+const COST_CATEGORIES: readonly Category[] = [
+  "Habitação & Fixos",
+  "Carro",
+  "Saúde",
+  "Estudos (Custeio)",
+  "Lazer",
+  "Cota Individual",
+];
+
+const ACCOUNT_PRESETS = ["Nubank", "Itaú", "Pix", "Dinheiro"] as const;
+
 interface QuickEntryBarProps {
   yearMonth: string;
+  config?: CoupleConfig[];
   dataSourceMode: DataSourceMode;
   onTransactionCreated: () => Promise<void> | void;
 }
 
 export function QuickEntryBar({
   yearMonth,
+  config = [],
   dataSourceMode,
   onTransactionCreated,
 }: QuickEntryBarProps) {
   const [rawText, setRawText] = useState("");
   const [defaultMember, setDefaultMember] = useState<Member>("Giovanni");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTactileOpen, setIsTactileOpen] = useState(false);
+  const [tValue, setTValue] = useState("");
+  const [tDesc, setTDesc] = useState("");
+  const [tFlow, setTFlow] = useState<FlowType>("CUSTO");
+  const [tCat, setTCat] = useState<Category>("Habitação & Fixos");
+  const [tConta, setTConta] = useState("Nubank");
+  const [tParcelas, setTParcelas] = useState(1);
+  const [tScope, setTScope] = useState<Scope>("CONJUNTO");
+  const [tDate, setTDate] = useState(() => new Date().toISOString().slice(0, 10));
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -81,6 +114,73 @@ export function QuickEntryBar({
     return roundCurrency(parsed.valorAbsoluto / parsed.total_parcelas);
   }, [parsed.total_parcelas, parsed.valorAbsoluto]);
 
+  function getProjectedCashHint(
+    txInput: {
+      data_competencia: string;
+      tipo_fluxo: FlowType;
+      categoria: Category;
+      descricao: string;
+      valor: number;
+      conta: string;
+      pago_por: Member;
+      escopo: Scope;
+      total_parcelas: number;
+    }
+  ): string {
+    const memberCfg = config.find((c) => c.usuario === txInput.pago_por);
+    const projected = splitInstallmentsWithBillingCycle(txInput, memberCfg);
+    const firstCash = projected[0]?.data_caixa || txInput.data_competencia;
+    const cashYm = firstCash.slice(0, 7);
+    const labelYm = formatYearMonthLabel(cashYm);
+    return `Fatura/Caixa: ${labelYm} (${formatShortDate(firstCash)})`;
+  }
+
+  const parsedCashHint = useMemo(() => {
+    if (!parsed.isValid) return "";
+    return getProjectedCashHint(parsed);
+  }, [parsed, config]);
+
+  async function submitTransaction(txPayload: {
+    data_competencia: string;
+    tipo_fluxo: FlowType;
+    categoria: Category;
+    descricao: string;
+    valor: number;
+    conta: string;
+    pago_por: Member;
+    escopo: Scope;
+    total_parcelas: number;
+  }) {
+    const response = await fetch("/api/sheets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...txPayload,
+        mode: dataSourceMode,
+      }),
+    });
+
+    if (!response.ok) {
+      const errData = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
+      throw new Error(
+        errData.message ?? "Não foi possível salvar o lançamento."
+      );
+    }
+
+    const parcelaInfo =
+      txPayload.total_parcelas > 1 ? ` (${txPayload.total_parcelas}x)` : "";
+    const cashHint = getProjectedCashHint(txPayload);
+
+    toast.success(
+      `Registrado: ${txPayload.descricao} · ${formatBRL(txPayload.valor)} em ${txPayload.categoria} (${txPayload.conta})${parcelaInfo}`,
+      {
+        description: `${cashHint} • Pago por: ${txPayload.pago_por}`,
+      }
+    );
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!parsed.isValid || isSubmitting) {
@@ -94,42 +194,17 @@ export function QuickEntryBar({
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/sheets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data_competencia: parsed.data_competencia,
-          tipo_fluxo: parsed.tipo_fluxo,
-          categoria: parsed.categoria,
-          descricao: parsed.descricao,
-          valor: parsed.valor,
-          conta: parsed.conta,
-          pago_por: parsed.pago_por,
-          escopo: parsed.escopo,
-          total_parcelas: parsed.total_parcelas,
-          mode: dataSourceMode,
-        }),
+      await submitTransaction({
+        data_competencia: parsed.data_competencia,
+        tipo_fluxo: parsed.tipo_fluxo,
+        categoria: parsed.categoria,
+        descricao: parsed.descricao,
+        valor: parsed.valor,
+        conta: parsed.conta,
+        pago_por: parsed.pago_por,
+        escopo: parsed.escopo,
+        total_parcelas: parsed.total_parcelas,
       });
-
-      if (!response.ok) {
-        const errData = (await response.json().catch(() => ({}))) as {
-          message?: string;
-        };
-        throw new Error(
-          errData.message ?? "Não foi possível salvar o lançamento."
-        );
-      }
-
-      const parcelaInfo =
-        parsed.total_parcelas > 1 ? ` (${parsed.total_parcelas}x)` : "";
-
-      toast.success(
-        `Registrado: ${parsed.descricao} · ${formatBRL(parsed.valor)} em ${parsed.categoria} (${parsed.conta})${parcelaInfo}`,
-        {
-          description: `Pago por: ${parsed.pago_por} • Data: ${parsed.data_competencia}`,
-        }
-      );
-
       setRawText("");
       await onTransactionCreated();
     } catch (error) {
@@ -137,6 +212,51 @@ export function QuickEntryBar({
         error instanceof Error
           ? error.message
           : "Erro inesperado ao registrar lançamento."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleTactileSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const numVal = Number(tValue.replace(",", "."));
+    if (!Number.isFinite(numVal) || numVal <= 0 || isSubmitting) {
+      toast.error("Informe um valor válido maior que zero.");
+      return;
+    }
+    const signedVal =
+      tFlow === "CUSTO" || tFlow === "PROVISAO_ANUAL"
+        ? -Math.abs(roundCurrency(numVal))
+        : Math.abs(roundCurrency(numVal));
+    const resolvedScope: Scope =
+      tScope === "CONJUNTO"
+        ? "CONJUNTO"
+        : defaultMember === "Giovanni"
+          ? "INDIVIDUAL_GIOVANNI"
+          : "INDIVIDUAL_MARIA_LUIZA";
+
+    setIsSubmitting(true);
+    try {
+      await submitTransaction({
+        data_competencia: tDate || referenceDate,
+        tipo_fluxo: tFlow,
+        categoria: tCat,
+        descricao: tDesc.trim() || tCat,
+        valor: signedVal,
+        conta: tConta,
+        pago_por: defaultMember,
+        escopo: resolvedScope,
+        total_parcelas: tFlow === "CUSTO" ? tParcelas : 1,
+      });
+      setTValue("");
+      setTDesc("");
+      setTParcelas(1);
+      setIsTactileOpen(false);
+      await onTransactionCreated();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao salvar lançamento."
       );
     } finally {
       setIsSubmitting(false);
@@ -198,22 +318,252 @@ export function QuickEntryBar({
           className="min-w-0 flex-1 bg-transparent py-1.5 px-2 text-sm text-ink placeholder:text-ink-muted focus:outline-none"
         />
 
-        {/* Right Shortcut or Instant Submit Button */}
-        {rawText.trim().length > 0 ? (
+        {/* Right Shortcut or Instant Submit Button + Tactile Mobile Trigger */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {rawText.trim().length > 0 ? (
+            <button
+              type="submit"
+              disabled={!parsed.isValid || isSubmitting}
+              className="pressable inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[#EC4899] px-3.5 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-95 disabled:opacity-40"
+            >
+              <span>{isSubmitting ? "Salvando..." : "Salvar"}</span>
+              <CornerDownLeft className="h-3.5 w-3.5" />
+            </button>
+          ) : (
+            <kbd className="surface-subtle hidden sm:inline-flex shrink-0 items-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-mono text-ink-muted">
+              ⌘K
+            </kbd>
+          )}
           <button
-            type="submit"
-            disabled={!parsed.isValid || isSubmitting}
-            className="pressable inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[#EC4899] px-3.5 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-95 disabled:opacity-40"
+            type="button"
+            onClick={() => {
+              setTDate(referenceDate);
+              setIsTactileOpen((prev) => !prev);
+            }}
+            className="pressable inline-flex items-center gap-1 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-2.5 py-1.5 text-xs font-bold text-ink hover:bg-[#FFC9E3]"
+            title="Abrir formulário tátil (ideal para celular)"
           >
-            <span>{isSubmitting ? "Salvando..." : "Salvar"}</span>
-            <CornerDownLeft className="h-3.5 w-3.5" />
+            {isTactileOpen ? (
+              <X className="h-3.5 w-3.5" />
+            ) : (
+              <Plus className="h-3.5 w-3.5" />
+            )}
+            <span>Lançar</span>
           </button>
-        ) : (
-          <kbd className="surface-subtle hidden sm:inline-flex shrink-0 items-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-mono text-ink-muted">
-            ⌘K
-          </kbd>
-        )}
+        </div>
       </form>
+
+      {isTactileOpen && (
+        <form
+          onSubmit={handleTactileSubmit}
+          className="surface-card mt-3 rounded-2xl p-4 sm:p-5 text-xs space-y-4"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap gap-1.5">
+              {(
+                [
+                  { id: "CUSTO", label: "Gasto", cat: "Habitação & Fixos" },
+                  { id: "RENDA", label: "Renda", cat: "Salário / Renda" },
+                  { id: "INVESTIMENTO", label: "Investimento", cat: "Casa" },
+                  {
+                    id: "PROVISAO_ANUAL",
+                    label: "Reserva Anual",
+                    cat: "Fundo Anual (Carro/Impostos)",
+                  },
+                ] as const
+              ).map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => {
+                    setTFlow(f.id);
+                    setTCat(f.cat);
+                  }}
+                  className={`pressable rounded-full px-3 py-1 font-semibold ${
+                    tFlow === f.id
+                      ? "bg-[#EC4899] text-white"
+                      : "surface-subtle text-ink-secondary"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setTScope("CONJUNTO")}
+                className={`pressable rounded-full px-3 py-1 font-semibold ${
+                  tScope === "CONJUNTO"
+                    ? "bg-[#1F0D18] text-white"
+                    : "surface-subtle text-ink-secondary"
+                }`}
+              >
+                Casal
+              </button>
+              <button
+                type="button"
+                onClick={() => setTScope("INDIVIDUAL_GIOVANNI")}
+                className={`pressable rounded-full px-3 py-1 font-semibold ${
+                  tScope !== "CONJUNTO"
+                    ? "bg-[#1F0D18] text-white"
+                    : "surface-subtle text-ink-secondary"
+                }`}
+              >
+                Individual
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-ink-secondary mb-1">
+                Valor (R$)
+              </label>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0.01"
+                required
+                value={tValue}
+                onChange={(e) => setTValue(e.target.value)}
+                placeholder="0,00"
+                className="surface-card w-full rounded-xl px-3 py-2 text-base font-bold text-ink tabular-nums focus:border-[#EC4899] focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-ink-secondary mb-1">
+                Descrição
+              </label>
+              <input
+                type="text"
+                value={tDesc}
+                onChange={(e) => setTDesc(e.target.value)}
+                placeholder="Ex: Mercado, Gasolina..."
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink focus:border-[#EC4899] focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-ink-secondary mb-1">
+                Data da compra
+              </label>
+              <input
+                type="date"
+                value={tDate}
+                onChange={(e) => setTDate(e.target.value)}
+                className="surface-card w-full rounded-xl px-3 py-2 text-xs text-ink tabular-nums focus:border-[#EC4899] focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {tFlow === "CUSTO" && (
+            <div>
+              <span className="block text-[11px] font-semibold text-ink-secondary mb-1.5">
+                Categoria
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {COST_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setTCat(cat)}
+                    className={`pressable rounded-full px-3 py-1 text-xs font-medium ${
+                      tCat === cat
+                        ? "bg-[#EC4899] text-white font-semibold"
+                        : "surface-subtle text-ink-secondary"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {tFlow === "INVESTIMENTO" && (
+            <div>
+              <span className="block text-[11px] font-semibold text-ink-secondary mb-1.5">
+                Meta
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {(
+                  [
+                    "Casa",
+                    "Estudos (Fundo Futuro)",
+                    "Viagem",
+                    "Reserva & Patrimônio",
+                  ] as const
+                ).map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setTCat(cat)}
+                    className={`pressable rounded-full px-3 py-1 text-xs font-medium ${
+                      tCat === cat
+                        ? "bg-[#C084FC] text-white font-semibold"
+                        : "surface-subtle text-ink-secondary"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-ink-secondary mr-1">
+                Conta:
+              </span>
+              {ACCOUNT_PRESETS.map((acc) => (
+                <button
+                  key={acc}
+                  type="button"
+                  onClick={() => setTConta(acc)}
+                  className={`pressable rounded-full px-2.5 py-1 text-xs font-medium ${
+                    tConta === acc
+                      ? "bg-[#1F0D18] text-white"
+                      : "surface-subtle text-ink-secondary"
+                  }`}
+                >
+                  {acc}
+                </button>
+              ))}
+              {tFlow === "CUSTO" && (
+                <>
+                  <span className="text-[11px] font-semibold text-ink-secondary ml-2 mr-1">
+                    Parcelas:
+                  </span>
+                  {[1, 2, 3, 6, 10, 12].map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setTParcelas(p)}
+                      className={`pressable rounded-full px-2.5 py-1 text-xs font-medium tabular-nums ${
+                        tParcelas === p
+                          ? "bg-[#EC4899] text-white font-semibold"
+                          : "surface-subtle text-ink-secondary"
+                      }`}
+                    >
+                      {p}x
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="pressable rounded-full border-2 border-[#1F0D18] bg-[#FF3B9A] px-5 py-2 text-xs font-bold text-white shadow-[2px_2px_0px_#1F0D18] disabled:opacity-50"
+            >
+              {isSubmitting ? "Salvando..." : `Salvar como ${defaultMember}`}
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* Instant Confirmation Line (Zero-latency when typing) OR 3 Subtle Text Suggestions */}
       {rawText.trim().length > 0 ? (
@@ -249,6 +599,14 @@ export function QuickEntryBar({
             <span>
               {parsed.pago_por} ({scopeBadge.label})
             </span>
+            {parsedCashHint && (
+              <>
+                <span className="text-ink-muted">·</span>
+                <span className="font-semibold text-[#EC4899]">
+                  {parsedCashHint}
+                </span>
+              </>
+            )}
           </div>
         </div>
       ) : (

@@ -1080,6 +1080,101 @@ function payNextInstallmentAction(ss, planId, referenceMonth) {
 }
 
 /**
+ * Atualiza os campos editáveis de uma transação existente em Transacoes.
+ */
+function updateTransactionRow(ss, txId, tx) {
+  const sheet = ss.getSheetByName("Transacoes");
+  if (!sheet || !txId) return false;
+  const values = sheet.getDataRange().getValues();
+  for (let r = 1; r < values.length; r++) {
+    if (String(values[r][0]).trim() === String(txId).trim()) {
+      const flow = ALLOWED_FLOW_TYPES.indexOf(tx.tipo_fluxo) !== -1 ? tx.tipo_fluxo : String(values[r][3]);
+      const absVal = Math.abs(parseFloat(tx.valor) || 0);
+      const signedVal =
+        flow === "CUSTO" || flow === "PROVISAO_ANUAL"
+          ? -Math.round(absVal * 100) / 100
+          : flow === "RENDA" || flow === "INVESTIMENTO"
+            ? Math.round(absVal * 100) / 100
+            : Math.round((parseFloat(tx.valor) || 0) * 100) / 100;
+
+      const paidBy = normalizeMember(tx.pago_por || values[r][8]);
+      const scope = normalizeScope(tx.escopo || values[r][9], paidBy);
+
+      sheet.getRange(r + 1, 2, 1, 9).setValues([[
+        sanitizeCell(String(tx.data_competencia || values[r][1]).slice(0, 10)),
+        sanitizeCell(String(tx.data_caixa || values[r][2]).slice(0, 10)),
+        sanitizeCell(flow),
+        sanitizeCell(tx.categoria || values[r][4]),
+        sanitizeCell(tx.descricao || values[r][5]),
+        signedVal,
+        sanitizeCell(tx.conta || values[r][7]),
+        sanitizeCell(paidBy),
+        sanitizeCell(scope)
+      ]]);
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Garante a existência da aba Recorrentes (Fixos do Mês).
+ */
+function ensureRecurringSheet(ss) {
+  let sheet = ss.getSheetByName("Recorrentes");
+  if (!sheet) {
+    sheet = ss.insertSheet("Recorrentes");
+  }
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow([
+      "id",
+      "descricao",
+      "tipo_fluxo",
+      "categoria",
+      "valor",
+      "conta",
+      "pago_por",
+      "escopo",
+      "dia_vencimento"
+    ]);
+  }
+  return sheet;
+}
+
+/**
+ * Cria ou atualiza um item fixo/recorrente na aba Recorrentes.
+ */
+function upsertRecurringRow(ss, rec) {
+  const sheet = ensureRecurringSheet(ss);
+  const recId = String(rec.id || "rec_" + new Date().getTime()).trim();
+  const paidBy = normalizeMember(rec.pago_por);
+  const scope = normalizeScope(rec.escopo, paidBy);
+  const flow = ALLOWED_FLOW_TYPES.indexOf(rec.tipo_fluxo) !== -1 ? rec.tipo_fluxo : "CUSTO";
+  const rowData = [
+    sanitizeCell(recId),
+    sanitizeCell(rec.descricao || "Fixo"),
+    sanitizeCell(flow),
+    sanitizeCell(rec.categoria || "Habitação & Fixos"),
+    Math.round(Math.abs(parseFloat(rec.valor) || 0) * 100) / 100,
+    sanitizeCell(rec.conta || "Conta Conjunta"),
+    sanitizeCell(paidBy),
+    sanitizeCell(scope),
+    Math.min(31, Math.max(1, parseInt(rec.dia_vencimento, 10) || 10))
+  ];
+  const values = sheet.getDataRange().getValues();
+  let updated = false;
+  for (let r = 1; r < values.length; r++) {
+    if (String(values[r][0]).trim() === recId) {
+      sheet.getRange(r + 1, 1, 1, rowData.length).setValues([rowData]);
+      updated = true;
+      break;
+    }
+  }
+  if (!updated) sheet.appendRow(rowData);
+  return { id: recId, updated: updated };
+}
+
+/**
  * Resposta JSON padronizada.
  */
 function jsonOk(obj) {
@@ -1270,11 +1365,13 @@ function doGet(e) {
     const config = getSheetData(ss.getSheetByName("Config_Casal"));
     const ativos = getSheetData(astSheet);
     const recebiveis = getSheetData(recSheet);
+    const recorrentes = getSheetData(ensureRecurringSheet(ss));
 
     logEvent("info", "sheet_snapshot_read", "doGet", correlationId, {
       transacoesCount: transacoes.length,
       ativosCount: ativos.length,
       recebiveisCount: recebiveis.length,
+      recorrentesCount: recorrentes.length,
       syncedTasks: syncedTasks
     });
 
@@ -1286,6 +1383,7 @@ function doGet(e) {
       config: config,
       ativos: ativos,
       recebiveis: recebiveis,
+      recorrentes: recorrentes,
       syncedTasks: syncedTasks,
       timestamp: new Date().toISOString()
     };
@@ -1355,6 +1453,21 @@ function doPost(e) {
       return ContentService.createTextOutput(
         JSON.stringify({ status: "SUCCESS", deleted: deleted })
       ).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (bodyData.action === "UPDATE_TRANSACTION" && bodyData.transactionId && bodyData.transaction) {
+      const updated = updateTransactionRow(ss, bodyData.transactionId, bodyData.transaction);
+      return jsonOk({ status: "SUCCESS", updated: updated });
+    }
+
+    if (bodyData.action === "UPSERT_RECURRING" && bodyData.recurring) {
+      const res = upsertRecurringRow(ss, bodyData.recurring);
+      return jsonOk({ status: "SUCCESS", result: res });
+    }
+
+    if (bodyData.action === "DELETE_RECURRING" && bodyData.id) {
+      const deleted = deleteRowById(ss.getSheetByName("Recorrentes"), bodyData.id);
+      return jsonOk({ status: "SUCCESS", deleted: deleted });
     }
 
     if (bodyData.action === "UPSERT_RECEIVABLE" && bodyData.receivable) {

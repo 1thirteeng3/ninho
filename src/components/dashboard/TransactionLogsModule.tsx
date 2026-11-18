@@ -1,13 +1,22 @@
 ﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Search, Trash2, X } from "lucide-react";
+import { Check, Pencil, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   filterTransactionsByMonth,
   roundCurrency,
 } from "@/lib/domain/financial-engine";
-import type { Member, Transaction, ViewMode } from "@/lib/domain/types";
+import {
+  CategorySchema,
+  FlowTypeSchema,
+  type Category,
+  type FlowType,
+  type Member,
+  type Scope,
+  type Transaction,
+  type ViewMode,
+} from "@/lib/domain/types";
 import { formatBRL, formatShortDate } from "@/lib/formatters";
 import type { DataSourceMode } from "./HeaderControls";
 
@@ -38,6 +47,17 @@ export function TransactionLogsModule({
   const [searchQuery, setSearchQuery] = useState<string>(
     externalSearchQuery ?? ""
   );
+  const [editingTxId, setEditingTxId] = useState<string | null>(null);
+  const [editDesc, setEditDesc] = useState("");
+  const [editValor, setEditValor] = useState("");
+  const [editFlow, setEditFlow] = useState<FlowType>("CUSTO");
+  const [editCat, setEditCat] = useState<Category>("Lazer");
+  const [editConta, setEditConta] = useState("");
+  const [editPaidBy, setEditPaidBy] = useState<Member>("Giovanni");
+  const [editScope, setEditScope] = useState<Scope>("CONJUNTO");
+  const [editCompDate, setEditCompDate] = useState("");
+  const [editCashDate, setEditCashDate] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   useEffect(() => {
     if (externalSearchQuery !== undefined) {
@@ -116,6 +136,69 @@ export function TransactionLogsModule({
 
     return { entradas, saidas, guardado };
   }, [filteredLogs]);
+
+  function startEditing(tx: Transaction) {
+    setEditingTxId(tx.id);
+    setEditDesc(tx.descricao);
+    setEditValor(String(Math.abs(tx.valor)));
+    setEditFlow(tx.tipo_fluxo);
+    setEditCat(tx.categoria);
+    setEditConta(tx.conta);
+    setEditPaidBy(tx.pago_por);
+    setEditScope(tx.escopo);
+    setEditCompDate(tx.data_competencia.slice(0, 10));
+    setEditCashDate(tx.data_caixa.slice(0, 10));
+  }
+
+  async function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingTxId || isSavingEdit) return;
+    const parsedVal = Number(editValor.replace(",", "."));
+    if (!editDesc.trim() || !Number.isFinite(parsedVal) || parsedVal <= 0) {
+      toast.error("Informe uma descrição e valor válidos.");
+      return;
+    }
+
+    const signedVal =
+      editFlow === "CUSTO" || editFlow === "PROVISAO_ANUAL"
+        ? -Math.abs(roundCurrency(parsedVal))
+        : Math.abs(roundCurrency(parsedVal));
+
+    setIsSavingEdit(true);
+    try {
+      const res = await fetch("/api/sheets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "UPDATE_TRANSACTION",
+          id: editingTxId,
+          mode: dataSourceMode,
+          transaction: {
+            data_competencia: editCompDate,
+            data_caixa: editCashDate,
+            tipo_fluxo: editFlow,
+            categoria: editCat,
+            descricao: editDesc.trim(),
+            valor: signedVal,
+            conta: editConta.trim() || "Nubank",
+            pago_por: editPaidBy,
+            escopo: editScope,
+          },
+        }),
+      });
+      if (!res.ok) {
+        const errData = (await res.json().catch(() => ({}))) as { message?: string };
+        throw new Error(errData.message ?? "Não foi possível atualizar o lançamento.");
+      }
+      toast.success("Lançamento atualizado!");
+      setEditingTxId(null);
+      await onDataChanged();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar lançamento.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  }
 
   async function handleDeleteTransaction(tx: Transaction) {
     try {
@@ -333,10 +416,12 @@ export function TransactionLogsModule({
             const scopeNote =
               tx.escopo === "CONJUNTO" ? "" : " · Individual";
 
+            const isEditing = editingTxId === tx.id;
+
             return (
+              <div key={tx.id} className="transition-colors hover:bg-[var(--bg-subtle)]/35">
               <div
-                key={tx.id}
-                className="group flex items-center justify-between gap-4 px-6 py-3.5 text-xs transition-colors hover:bg-[var(--bg-subtle)]/35 min-w-0"
+                className="group flex items-center justify-between gap-4 px-6 py-3.5 text-xs min-w-0"
               >
                 {/* Left: Minimalist Circular Indicator + Strong Title + Single Metadata Line */}
                 <div className="flex items-center gap-3.5 min-w-0 flex-1">
@@ -396,6 +481,15 @@ export function TransactionLogsModule({
 
                   <button
                     type="button"
+                    onClick={() => (isEditing ? setEditingTxId(null) : startEditing(tx))}
+                    className="pressable rounded-lg p-1.5 text-ink-muted opacity-80 transition-opacity hover:bg-[var(--bg-subtle)] hover:text-ink group-hover:opacity-100"
+                    title="Editar este lançamento"
+                    aria-label={`Editar ${tx.descricao}`}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleDeleteTransaction(tx)}
                     className="pressable rounded-lg p-1.5 text-ink-muted opacity-70 transition-opacity hover:bg-rose-500/10 hover:text-[#EC4899] group-hover:opacity-100"
                     title="Apagar este lançamento do histórico"
@@ -404,6 +498,151 @@ export function TransactionLogsModule({
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
+              </div>
+              {isEditing && (
+                <form
+                  onSubmit={handleSaveEdit}
+                  className="border-t border-hairline bg-[var(--bg-rose-tint)]/60 px-6 py-4 text-xs"
+                >
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-ink-secondary mb-1">
+                        Descrição
+                      </label>
+                      <input
+                        type="text"
+                        value={editDesc}
+                        onChange={(e) => setEditDesc(e.target.value)}
+                        className="surface-card w-full rounded-xl px-3 py-1.5 text-xs text-ink focus:border-[#EC4899] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-ink-secondary mb-1">
+                        Valor (R$)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value={editValor}
+                        onChange={(e) => setEditValor(e.target.value)}
+                        className="surface-card w-full rounded-xl px-3 py-1.5 text-xs text-ink tabular-nums focus:border-[#EC4899] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-ink-secondary mb-1">
+                        Tipo
+                      </label>
+                      <select
+                        value={editFlow}
+                        onChange={(e) => setEditFlow(e.target.value as FlowType)}
+                        className="surface-card w-full rounded-xl px-3 py-1.5 text-xs text-ink focus:border-[#EC4899] focus:outline-none"
+                      >
+                        {FlowTypeSchema.options.map((f) => (
+                          <option key={f} value={f}>
+                            {f}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-ink-secondary mb-1">
+                        Categoria
+                      </label>
+                      <select
+                        value={editCat}
+                        onChange={(e) => setEditCat(e.target.value as Category)}
+                        className="surface-card w-full rounded-xl px-3 py-1.5 text-xs text-ink focus:border-[#EC4899] focus:outline-none"
+                      >
+                        {CategorySchema.options.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-ink-secondary mb-1">
+                        Conta / Cartão
+                      </label>
+                      <input
+                        type="text"
+                        value={editConta}
+                        onChange={(e) => setEditConta(e.target.value)}
+                        className="surface-card w-full rounded-xl px-3 py-1.5 text-xs text-ink focus:border-[#EC4899] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-ink-secondary mb-1">
+                        Quem pagou / recebeu
+                      </label>
+                      <select
+                        value={editPaidBy}
+                        onChange={(e) => setEditPaidBy(e.target.value as Member)}
+                        className="surface-card w-full rounded-xl px-3 py-1.5 text-xs text-ink focus:border-[#EC4899] focus:outline-none"
+                      >
+                        <option value="Giovanni">Giovanni</option>
+                        <option value="Maria Luiza">Maria Luiza</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-ink-secondary mb-1">
+                        Escopo
+                      </label>
+                      <select
+                        value={editScope}
+                        onChange={(e) => setEditScope(e.target.value as Scope)}
+                        className="surface-card w-full rounded-xl px-3 py-1.5 text-xs text-ink focus:border-[#EC4899] focus:outline-none"
+                      >
+                        <option value="CONJUNTO">Conjunto (Casal)</option>
+                        <option value="INDIVIDUAL_GIOVANNI">Individual Giovanni</option>
+                        <option value="INDIVIDUAL_MARIA_LUIZA">Individual Maria Luiza</option>
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-ink-secondary mb-1">
+                          Compra
+                        </label>
+                        <input
+                          type="date"
+                          value={editCompDate}
+                          onChange={(e) => setEditCompDate(e.target.value)}
+                          className="surface-card w-full rounded-xl px-2 py-1.5 text-xs text-ink tabular-nums focus:border-[#EC4899] focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-ink-secondary mb-1">
+                          Fatura/Caixa
+                        </label>
+                        <input
+                          type="date"
+                          value={editCashDate}
+                          onChange={(e) => setEditCashDate(e.target.value)}
+                          className="surface-card w-full rounded-xl px-2 py-1.5 text-xs text-ink tabular-nums focus:border-[#EC4899] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingTxId(null)}
+                      className="pressable surface-card rounded-full px-3.5 py-1 text-xs font-medium text-ink-secondary"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSavingEdit}
+                      className="pressable inline-flex items-center gap-1 rounded-full bg-[#EC4899] px-4 py-1 text-xs font-semibold text-white disabled:opacity-50"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      <span>{isSavingEdit ? "Salvando..." : "Salvar alterações"}</span>
+                    </button>
+                  </div>
+                </form>
+              )}
               </div>
             );
           })}
