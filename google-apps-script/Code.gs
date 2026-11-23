@@ -624,9 +624,26 @@ function isCreditCardAccount(accountName) {
 }
 
 /**
- * Obtém os dias de fechamento e vencimento do cartão do membro na aba Config_Casal.
+ * Obtém os dias de fechamento e vencimento do cartão (Cartoes_Config por nome, fallback Config_Casal).
  */
-function getMemberCardConfig(ss, memberName) {
+function getMemberCardConfig(ss, memberName, accountName) {
+  if (accountName) {
+    const cardsSheet = ss.getSheetByName("Cartoes_Config");
+    if (cardsSheet) {
+      const cards = getSheetData(cardsSheet);
+      const accLower = String(accountName).trim().toLowerCase();
+      for (let c = 0; c < cards.length; c++) {
+        const cardName = String(cards[c].nome_cartao || "").trim().toLowerCase();
+        if (cardName && (accLower.indexOf(cardName) !== -1 || cardName.indexOf(accLower) !== -1)) {
+          return {
+            closingDay: parseInt(cards[c].dia_fechamento, 10) || 1,
+            dueDay: parseInt(cards[c].dia_vencimento, 10) || 10
+          };
+        }
+      }
+    }
+  }
+
   const cfgSheet = ss.getSheetByName("Config_Casal");
   const defaultCfg =
     memberName === "Maria Luiza"
@@ -751,7 +768,7 @@ function recordTransactionRows(ss, rawPayload) {
 
   const conta = String(rawPayload.conta || "Nubank").trim();
   const isCard = isCreditCardAccount(conta);
-  const cardCfg = isCard ? getMemberCardConfig(ss, paidBy) : null;
+  const cardCfg = isCard ? getMemberCardConfig(ss, paidBy, conta) : null;
 
   // Deslocamento de fatura base (delta_0): 0 se dia(t_compra) < d_fech, senão 1
   const purchaseDay = dataCompObj.getDate();
@@ -1174,6 +1191,64 @@ function upsertRecurringRow(ss, rec) {
   return { id: recId, updated: updated };
 }
 
+function ensureCardsSheet(ss) {
+  let sheet = ss.getSheetByName("Cartoes_Config");
+  if (!sheet) sheet = ss.insertSheet("Cartoes_Config");
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(["id", "nome_cartao", "titular", "dia_fechamento", "dia_vencimento"]);
+  }
+  return sheet;
+}
+
+function upsertCardRow(ss, card) {
+  const sheet = ensureCardsSheet(ss);
+  const cardId = String(card.id || "card_" + new Date().getTime()).trim();
+  const titular = normalizeMember(card.titular);
+  const rowData = [
+    sanitizeCell(cardId),
+    sanitizeCell(card.nome_cartao || "Cartão"),
+    sanitizeCell(titular),
+    Math.min(31, Math.max(1, parseInt(card.dia_fechamento, 10) || 1)),
+    Math.min(31, Math.max(1, parseInt(card.dia_vencimento, 10) || 10))
+  ];
+  const values = sheet.getDataRange().getValues();
+  let updated = false;
+  for (let r = 1; r < values.length; r++) {
+    if (String(values[r][0]).trim() === cardId) {
+      sheet.getRange(r + 1, 1, 1, rowData.length).setValues([rowData]);
+      updated = true;
+      break;
+    }
+  }
+  if (!updated) sheet.appendRow(rowData);
+  return { id: cardId, updated: updated };
+}
+
+function ensureMonthBalancesSheet(ss) {
+  let sheet = ss.getSheetByName("Saldos_Mes");
+  if (!sheet) sheet = ss.insertSheet("Saldos_Mes");
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(["year_month", "saldo_inicial"]);
+  }
+  return sheet;
+}
+
+function saveMonthBalanceRow(ss, yearMonth, saldoInicial) {
+  const sheet = ensureMonthBalancesSheet(ss);
+  const ym = String(yearMonth || "").trim().slice(0, 7);
+  if (!ym) return false;
+  const val = Math.round((parseFloat(saldoInicial) || 0) * 100) / 100;
+  const values = sheet.getDataRange().getValues();
+  for (let r = 1; r < values.length; r++) {
+    if (String(values[r][0]).trim().slice(0, 7) === ym) {
+      sheet.getRange(r + 1, 2).setValue(val);
+      return true;
+    }
+  }
+  sheet.appendRow([sanitizeCell(ym), val]);
+  return true;
+}
+
 /**
  * Resposta JSON padronizada.
  */
@@ -1366,6 +1441,8 @@ function doGet(e) {
     const ativos = getSheetData(astSheet);
     const recebiveis = getSheetData(recSheet);
     const recorrentes = getSheetData(ensureRecurringSheet(ss));
+    const cartoes = getSheetData(ensureCardsSheet(ss));
+    const saldos_iniciais = getSheetData(ensureMonthBalancesSheet(ss));
 
     logEvent("info", "sheet_snapshot_read", "doGet", correlationId, {
       transacoesCount: transacoes.length,
@@ -1384,6 +1461,8 @@ function doGet(e) {
       ativos: ativos,
       recebiveis: recebiveis,
       recorrentes: recorrentes,
+      cartoes: cartoes,
+      saldos_iniciais: saldos_iniciais,
       syncedTasks: syncedTasks,
       timestamp: new Date().toISOString()
     };
@@ -1468,6 +1547,21 @@ function doPost(e) {
     if (bodyData.action === "DELETE_RECURRING" && bodyData.id) {
       const deleted = deleteRowById(ss.getSheetByName("Recorrentes"), bodyData.id);
       return jsonOk({ status: "SUCCESS", deleted: deleted });
+    }
+
+    if (bodyData.action === "UPSERT_CARD" && bodyData.card) {
+      const res = upsertCardRow(ss, bodyData.card);
+      return jsonOk({ status: "SUCCESS", result: res });
+    }
+
+    if (bodyData.action === "DELETE_CARD" && bodyData.id) {
+      const deleted = deleteRowById(ss.getSheetByName("Cartoes_Config"), bodyData.id);
+      return jsonOk({ status: "SUCCESS", deleted: deleted });
+    }
+
+    if (bodyData.action === "SAVE_MONTH_BALANCE" && bodyData.year_month) {
+      saveMonthBalanceRow(ss, bodyData.year_month, bodyData.saldo_inicial);
+      return jsonOk({ status: "SUCCESS" });
     }
 
     if (bodyData.action === "UPSERT_RECEIVABLE" && bodyData.receivable) {

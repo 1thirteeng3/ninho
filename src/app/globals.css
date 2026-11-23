@@ -10,13 +10,13 @@
   --text-primary: #1F0D18;
   --text-secondary: #5C3A4D;
   --text-muted: #8E657C;
-  --border-hairline: rgba(31, 13, 24, 0.16);
-  --border-strong: #1F0D18;
+  --border-hairline: rgba(31, 13, 24, 0.14);
+  --border-strong: rgba(31, 13, 24, 0.78);
   --accent-primary: #EC4899;
   --accent-vivid: #FF3B9A;
   --accent-soft: #FFC9E3;
-  --shadow-card: 4px 4px 0px #1F0D18;
-  --shadow-sm: 2px 2px 0px #1F0D18;
+  --shadow-card: 0 2px 10px rgba(31, 13, 24, 0.06);
+  --shadow-sm: 1.5px 1.5px 0px rgba(31, 13, 24, 0.85);
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -30,13 +30,13 @@
   --text-primary: #FFF5FA;
   --text-secondary: #E2BED1;
   --text-muted: #A87D95;
-  --border-hairline: rgba(255, 194, 226, 0.18);
-  --border-strong: #FF70B8;
+  --border-hairline: rgba(255, 194, 226, 0.16);
+  --border-strong: rgba(255, 112, 184, 0.42);
   --accent-primary: #F472B6;
   --accent-vivid: #FF4DA6;
   --accent-soft: rgba(244, 114, 182, 0.22);
-  --shadow-card: 4px 4px 0px #FF4DA6;
-  --shadow-sm: 2px 2px 0px #FF4DA6;
+  --shadow-card: 0 4px 18px rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 1px 4px rgba(255, 77, 166, 0.2);
 }
 
 html {
@@ -65,10 +65,10 @@ body {
     color 200ms var(--ease-out-quart);
 }
 
-/* Neo-Brutalist Pink Semantic Surfaces */
+/* Editorial Rose Semantic Surfaces */
 .surface-card {
   background-color: var(--bg-surface);
-  border: 2px solid var(--border-strong);
+  border: 1.5px solid var(--border-strong);
   box-shadow: var(--shadow-card);
 }
 

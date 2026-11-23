@@ -9,6 +9,7 @@ import {
 } from "@/lib/domain/financial-engine";
 import { parseQuickEntry } from "@/lib/domain/quick-entry-parser";
 import type {
+  CardConfig,
   Category,
   CoupleConfig,
   FlowType,
@@ -53,6 +54,7 @@ const ACCOUNT_PRESETS = ["Nubank", "Itaú", "Pix", "Dinheiro"] as const;
 interface QuickEntryBarProps {
   yearMonth: string;
   config?: CoupleConfig[];
+  cards?: CardConfig[];
   dataSourceMode: DataSourceMode;
   onTransactionCreated: () => Promise<void> | void;
 }
@@ -60,6 +62,7 @@ interface QuickEntryBarProps {
 export function QuickEntryBar({
   yearMonth,
   config = [],
+  cards = [],
   dataSourceMode,
   onTransactionCreated,
 }: QuickEntryBarProps) {
@@ -128,7 +131,11 @@ export function QuickEntryBar({
     }
   ): string {
     const memberCfg = config.find((c) => c.usuario === txInput.pago_por);
-    const projected = splitInstallmentsWithBillingCycle(txInput, memberCfg);
+    const projected = splitInstallmentsWithBillingCycle(
+      txInput,
+      memberCfg,
+      cards
+    );
     const firstCash = projected[0]?.data_caixa || txInput.data_competencia;
     const cashYm = firstCash.slice(0, 7);
     const labelYm = formatYearMonthLabel(cashYm);
@@ -138,7 +145,7 @@ export function QuickEntryBar({
   const parsedCashHint = useMemo(() => {
     if (!parsed.isValid) return "";
     return getProjectedCashHint(parsed);
-  }, [parsed, config]);
+  }, [parsed, config, cards]);
 
   async function submitTransaction(txPayload: {
     data_competencia: string;

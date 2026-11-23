@@ -106,8 +106,100 @@ export function DynamicAllocationTable({
         </div>
       </div>
 
-      {/* Financial Magazine Table */}
-      <div className="overflow-x-auto">
+      {/* Mobile Stacked View (zero horizontal scroll) */}
+      <div className="divide-y divide-hairline md:hidden">
+        {[
+          {
+            title: "1. Gastos do Dia a Dia",
+            total: allocation.custosTotal,
+            pct: resolvePct(allocation.custosTotal, allocation.percentualCustos),
+            color: "#EC4899",
+            items: allocation.categoriasCusto.map((c) => ({
+              label: c.categoria,
+              valor: c.valor,
+              pct: resolvePct(c.valor, c.percentualRenda),
+              color: CATEGORY_COLORS[c.categoria] ?? "#EC4899",
+            })),
+          },
+          {
+            title: "2. Reserva Anual",
+            total: allocation.provisoesTotal,
+            pct: resolvePct(allocation.provisoesTotal, allocation.percentualProvisoes),
+            color: "#D97706",
+            items: [
+              {
+                label: "Fundo Anual (Carro/Impostos)",
+                valor: allocation.provisoesTotal,
+                pct: resolvePct(
+                  allocation.provisoesTotal,
+                  allocation.percentualProvisoes
+                ),
+                color: "#D97706",
+              },
+            ],
+          },
+          {
+            title: "3. Investimentos do Mês",
+            total: allocation.investimentosTotal,
+            pct: resolvePct(
+              allocation.investimentosTotal,
+              allocation.percentualInvestimentos
+            ),
+            color: "#C084FC",
+            items: allocation.categoriasInvestimento.map((c) => ({
+              label: c.categoria,
+              valor: c.valor,
+              pct: resolvePct(c.valor, c.percentualRenda),
+              color: CATEGORY_COLORS[c.categoria as Category] ?? "#C084FC",
+            })),
+          },
+        ].map((grp) => (
+          <div key={grp.title} className="p-4 space-y-2.5 text-xs">
+            <div className="flex items-center justify-between font-semibold text-ink">
+              <span>{grp.title}</span>
+              <span className="tabular-nums">
+                {formatBRL(grp.total)} ({formatPct(grp.pct)})
+              </span>
+            </div>
+            <div className="space-y-2">
+              {grp.items.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => onSelectCategory?.(item.label)}
+                  className="w-full text-left space-y-1"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2 text-ink truncate">
+                      <span
+                        className="h-2 w-2 rounded-full shrink-0"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="truncate">{item.label}</span>
+                    </span>
+                    <span className="shrink-0 tabular-nums text-ink-secondary">
+                      <strong className="text-ink">{formatBRL(item.valor)}</strong> ·{" "}
+                      {formatPct(item.pct)}
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-subtle)]">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.min(100, Math.max(0, item.pct))}%`,
+                        backgroundColor: item.color,
+                      }}
+                    />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop Financial Magazine Table */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full min-w-[640px] border-collapse text-left text-xs">
           <thead>
             <tr className="border-b border-hairline bg-[var(--bg-subtle)]/60 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-secondary">

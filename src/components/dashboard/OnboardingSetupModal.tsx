@@ -144,6 +144,12 @@ export function OnboardingSetupModal({
     setClearConfirmText("");
   }, [open, payload.config]);
 
+  // Passo 1 - Cartões específicos
+  const [cardName, setCardName] = useState("");
+  const [cardOwner, setCardOwner] = useState<Member>("Maria Luiza");
+  const [cardClose, setCardClose] = useState("20");
+  const [cardDue, setCardDue] = useState("27");
+
   // Passo 2
   const [txKind, setTxKind] = useState<"ENTRADA" | "DESPESA">("ENTRADA");
   const [txDesc, setTxDesc] = useState("");
@@ -533,9 +539,114 @@ export function OnboardingSetupModal({
                 </div>
               ))}
               <button type="submit" className={BTN} disabled={busy}>
-                <Check className="h-3.5 w-3.5" /> Salvar casal e cartões
+                <Check className="h-3.5 w-3.5" /> Salvar casal e mesada
               </button>
             </form>
+          )}
+
+          {step === "CASAL" && (
+            <div className="space-y-4 border-t border-hairline pt-5">
+              <div>
+                <h3 className="text-sm font-bold text-ink">
+                  Cartões específicos ({(payload.cartoes ?? []).length})
+                </h3>
+                <p className="mt-0.5 text-xs text-ink-secondary">
+                  Se vocês usam mais de um cartão (ex.: Nubank vence dia 27, Itaú vence dia 12), cadastre cada um aqui para projeção exata.
+                </p>
+              </div>
+              {(payload.cartoes ?? []).length > 0 && (
+                <div className="space-y-1.5">
+                  {(payload.cartoes ?? []).map((card) => (
+                    <div
+                      key={card.id}
+                      className="flex items-center justify-between rounded-xl border border-hairline px-3 py-2 text-xs"
+                    >
+                      <span className="font-semibold text-ink">
+                        {card.nome_cartao} · {card.titular} · fecha dia {card.dia_fechamento}, vence dia {card.dia_vencimento}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void run(
+                            () => postAction({ action: "DELETE_CARD", id: card.id }),
+                            "Cartão removido."
+                          )
+                        }
+                        className="text-ink-muted hover:text-ink"
+                        aria-label="Remover cartão"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!cardName.trim()) {
+                    toast.error("Informe o nome do cartão (ex: Nubank, Itaú).");
+                    return;
+                  }
+                  void run(
+                    () =>
+                      postAction({
+                        action: "UPSERT_CARD",
+                        card: {
+                          id: `card_${Date.now()}`,
+                          nome_cartao: cardName.trim(),
+                          titular: cardOwner,
+                          dia_fechamento: Math.min(31, Math.max(1, parseInt(cardClose, 10) || 1)),
+                          dia_vencimento: Math.min(31, Math.max(1, parseInt(cardDue, 10) || 10)),
+                        },
+                      }),
+                    "Cartão cadastrado!",
+                    () => setCardName("")
+                  );
+                }}
+                className="grid grid-cols-1 gap-3 sm:grid-cols-4 items-end"
+              >
+                <Field label="Nome do cartão">
+                  <input
+                    className={INPUT}
+                    value={cardName}
+                    onChange={(e) => setCardName(e.target.value)}
+                    placeholder="Ex: Nubank, Itaú"
+                  />
+                </Field>
+                <Field label="Titular">
+                  <select
+                    className={INPUT}
+                    value={cardOwner}
+                    onChange={(e) => setCardOwner(e.target.value as Member)}
+                  >
+                    <option value="Giovanni">Giovanni</option>
+                    <option value="Maria Luiza">Maria Luiza</option>
+                  </select>
+                </Field>
+                <Field label="Fecha dia">
+                  <input
+                    className={INPUT}
+                    inputMode="numeric"
+                    value={cardClose}
+                    onChange={(e) => setCardClose(e.target.value)}
+                  />
+                </Field>
+                <Field label="Vence dia">
+                  <input
+                    className={INPUT}
+                    inputMode="numeric"
+                    value={cardDue}
+                    onChange={(e) => setCardDue(e.target.value)}
+                  />
+                </Field>
+                <div className="sm:col-span-4">
+                  <button type="submit" className={BTN} disabled={busy}>
+                    <Check className="h-3.5 w-3.5" /> Adicionar cartão
+                  </button>
+                </div>
+              </form>
+            </div>
           )}
 
           {step === "LANCAMENTOS" && (

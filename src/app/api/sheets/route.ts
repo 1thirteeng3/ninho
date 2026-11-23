@@ -5,12 +5,14 @@ import { splitInstallmentsWithBillingCycle } from "@/lib/domain/financial-engine
 import {
   AnnualProvisionSchema,
   AssetTypeSchema,
+  CardConfigSchema,
   CategorySchema,
   CoupleConfigSchema,
   FlowTypeSchema,
   InvestmentAssetSchema,
   InvestmentGoalSchema,
   MemberSchema,
+  MonthBalanceSchema,
   ReceivablePlanSchema,
   RecurringTemplateSchema,
   ScopeSchema,
@@ -159,6 +161,22 @@ const ActionRequestSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("DELETE_RECURRING"),
     id: z.string().min(1),
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("UPSERT_CARD"),
+    card: CardConfigSchema,
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("DELETE_CARD"),
+    id: z.string().min(1),
+    mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
+  }),
+  z.object({
+    action: z.literal("SAVE_MONTH_BALANCE"),
+    year_month: z.string().min(7).max(7),
+    saldo_inicial: z.number(),
     mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
   }),
 ]);
@@ -376,6 +394,26 @@ function normalizeRecurring(r: Row) {
   };
 }
 
+function normalizeCard(r: Row) {
+  if (!str(r.id)) return null;
+  return {
+    id: str(r.id),
+    nome_cartao: str(r.nome_cartao),
+    titular: pick(r.titular, ["Giovanni", "Maria Luiza"] as const, "Giovanni"),
+    dia_fechamento: Math.min(31, Math.max(1, Math.floor(num(r.dia_fechamento)) || 1)),
+    dia_vencimento: Math.min(31, Math.max(1, Math.floor(num(r.dia_vencimento)) || 10)),
+  };
+}
+
+function normalizeMonthBalance(r: Row) {
+  const ym = str(r.year_month).slice(0, 7);
+  if (!ym) return null;
+  return {
+    year_month: ym,
+    saldo_inicial: num(r.saldo_inicial),
+  };
+}
+
 function emptyPayload() {
   return {
     transacoes: [],
@@ -388,6 +426,8 @@ function emptyPayload() {
     ativos: [],
     recebiveis: [],
     recorrentes: [],
+    cartoes: [],
+    saldos_iniciais: [],
     timestamp: new Date().toISOString(),
   };
 }
@@ -505,6 +545,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         ativos: normalizeRows(data.ativos, normalizeAsset),
         recebiveis: normalizeRows(data.recebiveis, normalizeReceivable),
         recorrentes: normalizeRows(data.recorrentes, normalizeRecurring),
+        cartoes: normalizeRows(data.cartoes, normalizeCard),
+        saldos_iniciais: normalizeRows(data.saldos_iniciais, normalizeMonthBalance),
         syncedTasks:
           typeof data.syncedTasks === "number" ? data.syncedTasks : 0,
         timestamp:
@@ -755,6 +797,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
         action: "DELETE_RECURRING",
         id: parsedAction.id,
+      });
+      return NextResponse.json({ status: "SUCCESS" }, { status: 200, headers });
+    }
+
+    if (parsedAction.action === "UPSERT_CARD") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "UPSERT_CARD",
+        card: parsedAction.card,
+      });
+      return NextResponse.json({ status: "SUCCESS" }, { status: 200, headers });
+    }
+
+    if (parsedAction.action === "DELETE_CARD") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "DELETE_CARD",
+        id: parsedAction.id,
+      });
+      return NextResponse.json({ status: "SUCCESS" }, { status: 200, headers });
+    }
+
+    if (parsedAction.action === "SAVE_MONTH_BALANCE") {
+      await forwardActionToGasIfLive(gasUrl, parsedAction.mode, {
+        action: "SAVE_MONTH_BALANCE",
+        year_month: parsedAction.year_month,
+        saldo_inicial: parsedAction.saldo_inicial,
       });
       return NextResponse.json({ status: "SUCCESS" }, { status: 200, headers });
     }

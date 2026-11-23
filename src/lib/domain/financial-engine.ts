@@ -1,4 +1,5 @@
 import type {
+  CardConfig,
   Category,
   CoupleConfig,
   FlowType,
@@ -464,6 +465,28 @@ function isCreditCardAccount(accountName: string): boolean {
   return CREDIT_CARD_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
+export function resolveCardCycleConfig(
+  accountName: string,
+  member: Member,
+  memberConfigs: CoupleConfig[],
+  cardConfigs: CardConfig[] = []
+): CoupleConfig | undefined {
+  const accLower = accountName.trim().toLowerCase();
+  const matchedCard = cardConfigs.find((c) => {
+    const nameLower = c.nome_cartao.trim().toLowerCase();
+    return nameLower.length > 0 && (accLower.includes(nameLower) || nameLower.includes(accLower));
+  });
+  if (matchedCard) {
+    return {
+      usuario: matchedCard.titular,
+      cota_mensal_livre: 0,
+      dia_fechamento_cartao: matchedCard.dia_fechamento,
+      dia_vencimento_cartao: matchedCard.dia_vencimento,
+    };
+  }
+  return memberConfigs.find((c) => c.usuario === member);
+}
+
 /**
  * Motor de Desdobramento Temporal de Cartão de Crédito (Competência vs. Caixa — Seção 4.2.3).
  * Divide uma transação em N parcelas exatas (ajustando residual de centavos na parcela 1)
@@ -471,8 +494,18 @@ function isCreditCardAccount(accountName: string): boolean {
  */
 export function splitInstallmentsWithBillingCycle(
   input: SplitInstallmentsInput,
-  cardConfig?: CoupleConfig
+  cardConfig?: CoupleConfig,
+  specificCards?: CardConfig[]
 ): Transaction[] {
+  const effectiveConfig =
+    specificCards && specificCards.length > 0
+      ? resolveCardCycleConfig(
+          input.conta,
+          input.pago_por,
+          cardConfig ? [cardConfig] : [],
+          specificCards
+        )
+      : cardConfig;
   const totalParcelas = Math.max(1, Math.floor(input.total_parcelas || 1));
   const absTotal = roundCurrency(Math.abs(input.valor));
 
@@ -496,13 +529,13 @@ export function splitInstallmentsWithBillingCycle(
   );
 
   const useCardCycle =
-    Boolean(cardConfig) &&
+    Boolean(effectiveConfig) &&
     (totalParcelas > 1 || isCreditCardAccount(input.conta));
 
   const delta0 =
     useCardCycle &&
-    cardConfig &&
-    compParts.day >= cardConfig.dia_fechamento_cartao
+    effectiveConfig &&
+    compParts.day >= effectiveConfig.dia_fechamento_cartao
       ? 1
       : 0;
 
@@ -518,12 +551,12 @@ export function splitInstallmentsWithBillingCycle(
     const signedAmount = roundCurrency(sign * unitAmount);
 
     let dataCaixaISO: string;
-    if (useCardCycle && cardConfig) {
+    if (useCardCycle && effectiveConfig) {
       const monthOffset = delta0 + (i - 1);
       dataCaixaISO = formatClampedISODate(
         compParts.year,
         compParts.monthIndex + monthOffset,
-        cardConfig.dia_vencimento_cartao
+        effectiveConfig.dia_vencimento_cartao
       );
     } else {
       const baseCashParts = input.data_caixa

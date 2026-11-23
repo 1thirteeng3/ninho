@@ -43,6 +43,8 @@ const EMPTY_PAYLOAD: DashboardPayload = {
   ativos: [],
   recebiveis: [],
   recorrentes: [],
+  cartoes: [],
+  saldos_iniciais: [],
   timestamp: new Date().toISOString(),
   mode: "LIVE",
 };
@@ -102,6 +104,8 @@ export default function NinhoDashboardPage() {
           ativos: data.ativos ?? [],
           recebiveis: data.recebiveis ?? [],
           recorrentes: data.recorrentes ?? [],
+          cartoes: data.cartoes ?? [],
+          saldos_iniciais: data.saldos_iniciais ?? [],
           timestamp: data.timestamp ?? new Date().toISOString(),
           mode: data.mode,
         });
@@ -251,6 +255,33 @@ export default function NinhoDashboardPage() {
     return activePayablePlans.size + activeReceivables;
   }, [payload.transacoes, payload.recebiveis, yearMonth]);
 
+  const currentMonthInitialBalance = useMemo(() => {
+    const ym = yearMonth.trim().slice(0, 7);
+    const match = (payload.saldos_iniciais ?? []).find(
+      (b) => b.year_month.slice(0, 7) === ym
+    );
+    return match?.saldo_inicial ?? 0;
+  }, [payload.saldos_iniciais, yearMonth]);
+
+  async function handleSaveInitialBalance(value: number) {
+    const res = await fetch("/api/sheets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "SAVE_MONTH_BALANCE",
+        year_month: yearMonth.trim().slice(0, 7),
+        saldo_inicial: value,
+        mode: DATA_SOURCE,
+      }),
+    });
+    if (!res.ok) {
+      toast.error("Não foi possível salvar o saldo inicial.");
+      return;
+    }
+    toast.success("Saldo inicial do mês atualizado!");
+    await fetchDashboardData();
+  }
+
   const workspaceTabs: readonly {
     id: WorkspaceTab;
     label: string;
@@ -313,6 +344,7 @@ export default function NinhoDashboardPage() {
         <QuickEntryBar
           yearMonth={yearMonth}
           config={payload.config}
+          cards={payload.cartoes ?? []}
           dataSourceMode={DATA_SOURCE}
           onTransactionCreated={async () => {
             await fetchDashboardData();
@@ -325,6 +357,8 @@ export default function NinhoDashboardPage() {
           transactions={payload.transacoes}
           yearMonth={yearMonth}
           viewMode={viewMode}
+          initialBalance={currentMonthInitialBalance}
+          onSaveInitialBalance={handleSaveInitialBalance}
         />
 
         {/* Navegação Neo-Brutalista por Abas de Contexto */}

@@ -143,6 +143,21 @@ export const RecurringTemplateSchema = z.object({
 });
 export type RecurringTemplate = z.infer<typeof RecurringTemplateSchema>;
 
+export const CardConfigSchema = z.object({
+  id: z.string(),
+  nome_cartao: z.string(),
+  titular: MemberSchema,
+  dia_fechamento: z.number().int().min(1).max(31),
+  dia_vencimento: z.number().int().min(1).max(31),
+});
+export type CardConfig = z.infer<typeof CardConfigSchema>;
+
+export const MonthBalanceSchema = z.object({
+  year_month: z.string(),
+  saldo_inicial: z.number(),
+});
+export type MonthBalance = z.infer<typeof MonthBalanceSchema>;
+
 export const DashboardPayloadSchema = z.object({
   transacoes: z.array(TransactionSchema),
   investimentos: z.array(InvestmentGoalSchema),
@@ -151,6 +166,8 @@ export const DashboardPayloadSchema = z.object({
   ativos: z.array(InvestmentAssetSchema).optional().default([]),
   recebiveis: z.array(ReceivablePlanSchema).optional().default([]),
   recorrentes: z.array(RecurringTemplateSchema).optional(),
+  cartoes: z.array(CardConfigSchema).optional(),
+  saldos_iniciais: z.array(MonthBalanceSchema).optional(),
   timestamp: z.string(),
   mode: z.enum(["LIVE", "DEMO", "WORST_CASE"]).optional(),
 });

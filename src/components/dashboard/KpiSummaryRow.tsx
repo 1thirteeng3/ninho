@@ -1,6 +1,7 @@
 ﻿"use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
+import { Pencil } from "lucide-react";
 import {
   filterTransactionsByMonth,
   roundCurrency,
@@ -14,6 +15,8 @@ interface KpiSummaryRowProps {
   transactions: Transaction[];
   yearMonth: string;
   viewMode: ViewMode;
+  initialBalance?: number;
+  onSaveInitialBalance?: (value: number) => Promise<void>;
 }
 
 export function KpiSummaryRow({
@@ -21,7 +24,30 @@ export function KpiSummaryRow({
   transactions,
   yearMonth,
   viewMode,
+  initialBalance = 0,
+  onSaveInitialBalance,
 }: KpiSummaryRowProps) {
+  const [isEditingBalance, setIsEditingBalance] = useState(false);
+  const [balanceInput, setBalanceInput] = useState("");
+  const [isSavingBalance, setIsSavingBalance] = useState(false);
+
+  const projectedBalance = roundCurrency(
+    initialBalance + allocation.saldoResidual
+  );
+
+  async function handleBalanceSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!onSaveInitialBalance || isSavingBalance) return;
+    const val = Number((balanceInput.trim() || "0").replace(",", "."));
+    if (!Number.isFinite(val)) return;
+    setIsSavingBalance(true);
+    try {
+      await onSaveInitialBalance(roundCurrency(val));
+      setIsEditingBalance(false);
+    } finally {
+      setIsSavingBalance(false);
+    }
+  }
   const memberIncomeBreakdown = useMemo(() => {
     const monthTxs = filterTransactionsByMonth(
       transactions,
@@ -170,19 +196,64 @@ export function KpiSummaryRow({
             </div>
             <p
               className={`mt-2 text-3xl font-bold tracking-[-0.03em] tabular-nums truncate ${
-                allocation.saldoResidual >= 0
+                projectedBalance >= 0
                   ? "text-[#059669] dark:text-emerald-400"
                   : "text-amber-600 dark:text-amber-400"
               }`}
             >
-              {formatBRL(allocation.saldoResidual, true)}
+              {formatBRL(projectedBalance, true)}
             </p>
           </div>
-          <p className="mt-3 text-xs font-medium text-ink-secondary truncate">
-            {allocation.saldoResidual >= 0
-              ? "Disponível livre na conta conjunta"
-              : "Coberto pela reserva acumulada"}
-          </p>
+          {isEditingBalance ? (
+            <form onSubmit={handleBalanceSubmit} className="mt-2 flex items-center gap-1.5">
+              <input
+                type="number"
+                step="0.01"
+                value={balanceInput}
+                onChange={(e) => setBalanceInput(e.target.value)}
+                placeholder="Saldo inicial"
+                className="surface-card w-28 rounded-lg px-2 py-1 text-xs text-ink tabular-nums focus:border-[#EC4899] focus:outline-none"
+              />
+              <button
+                type="submit"
+                disabled={isSavingBalance}
+                className="rounded-lg bg-[#EC4899] px-2.5 py-1 text-[11px] font-semibold text-white"
+              >
+                OK
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEditingBalance(false)}
+                className="text-[11px] text-ink-muted hover:text-ink"
+              >
+                ×
+              </button>
+            </form>
+          ) : (
+            <div className="mt-3 flex items-center justify-between gap-2 text-xs font-medium text-ink-secondary">
+              <span className="truncate tabular-nums">
+                {initialBalance !== 0
+                  ? `Inicial ${formatBRL(initialBalance)} · Mês ${formatBRL(allocation.saldoResidual, true)}`
+                  : projectedBalance >= 0
+                    ? "Disponível livre na conta conjunta"
+                    : "Coberto pela reserva acumulada"}
+              </span>
+              {onSaveInitialBalance && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBalanceInput(String(initialBalance));
+                    setIsEditingBalance(true);
+                  }}
+                  className="inline-flex shrink-0 items-center gap-1 text-[11px] text-ink-muted hover:text-[#EC4899]"
+                  title="Definir saldo inicial do mês na conta"
+                >
+                  <Pencil className="h-3 w-3" />
+                  <span>Saldo</span>
+                </button>
+              )}
+            </div>
+          )}
         </article>
       </div>
 
